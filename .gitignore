@@ -15,3 +15,6 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+cloudflared.exe
+*.sqlite
+mcn_platform
