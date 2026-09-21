@@ -14,13 +14,23 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        DB::table('kpis')->truncate();
-        DB::table('stream_metrics')->truncate();
-        DB::table('schedules')->truncate();
-        DB::table('bookings')->truncate();
-        DB::table('streamer_profiles')->truncate();
-        DB::table('users')->truncate();
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = OFF;');
+            DB::table('kpis')->delete();
+            DB::table('stream_metrics')->delete();
+            DB::table('schedules')->delete();
+            DB::table('bookings')->delete();
+            DB::table('streamer_profiles')->delete();
+            DB::table('users')->delete();
+        } else {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            DB::table('kpis')->truncate();
+            DB::table('stream_metrics')->truncate();
+            DB::table('schedules')->truncate();
+            DB::table('bookings')->truncate();
+            DB::table('streamer_profiles')->truncate();
+            DB::table('users')->truncate();
+        }
 
         $defaultPassword = Hash::make('password123');
 
@@ -232,6 +242,10 @@ class DatabaseSeeder extends Seeder
             ]));
         }
 
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        if (DB::getDriverName() === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = ON;');
+        } else {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        }
     }
 }

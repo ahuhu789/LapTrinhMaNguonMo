@@ -89,9 +89,10 @@ class StreamerProfile extends Model
      */
     public function getMonthlyStreamHoursAttribute(): float
     {
-        $currentMonth = Carbon::now()->format('Y-m');
+        $startOfMonth = Carbon::now()->startOfMonth()->toDateString();
+        $endOfMonth = Carbon::now()->endOfMonth()->toDateString();
         return (float) ($this->metrics()
-            ->whereRaw("DATE_FORMAT(stream_date, '%Y-%m') = ?", [$currentMonth])
+            ->whereBetween('stream_date', [$startOfMonth, $endOfMonth])
             ->sum('duration_hours') ?? 0);
     }
 

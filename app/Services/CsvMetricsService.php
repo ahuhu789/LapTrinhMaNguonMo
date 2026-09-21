@@ -186,15 +186,20 @@ class CsvMetricsService
             $streamerId = $item['streamer_id'];
             $monthYear = $item['month_year'];
 
+            $startOfMonth = Carbon::parse($monthYear . '-01')->startOfMonth()->toDateString();
+            $endOfMonth = Carbon::parse($monthYear . '-01')->endOfMonth()->toDateString();
+            $startOfDateTime = Carbon::parse($monthYear . '-01')->startOfMonth()->toDateTimeString();
+            $endOfDateTime = Carbon::parse($monthYear . '-01')->endOfMonth()->toDateTimeString();
+
             // 1. Tính tổng số giờ stream trong tháng
             $totalHours = StreamMetric::where('streamer_id', $streamerId)
-                ->whereRaw("DATE_FORMAT(stream_date, '%Y-%m') = ?", [$monthYear])
+                ->whereBetween('stream_date', [$startOfMonth, $endOfMonth])
                 ->sum('duration_hours');
 
             // 2. Tính tổng doanh thu từ các booking đã duyệt/hoàn thành trong tháng
             $totalRevenue = Booking::where('streamer_id', $streamerId)
                 ->whereIn('status', ['approved', 'completed'])
-                ->whereRaw("DATE_FORMAT(start_time, '%Y-%m') = ?", [$monthYear])
+                ->whereBetween('start_time', [$startOfDateTime, $endOfDateTime])
                 ->sum('budget');
 
             // 3. Tìm hoặc tạo bản ghi KPI tương ứng

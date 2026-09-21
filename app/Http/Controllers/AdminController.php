@@ -65,10 +65,13 @@ class AdminController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $startOfMonth = Carbon::now()->startOfMonth()->toDateTimeString();
+        $endOfMonth = Carbon::now()->endOfMonth()->toDateTimeString();
+
         // Thống kê doanh số tháng này của nhóm
         $teamRevenue = Booking::whereIn('streamer_id', $streamerIds)
             ->whereIn('status', ['approved', 'completed'])
-            ->whereRaw("DATE_FORMAT(start_time, '%Y-%m') = ?", [$currentMonth])
+            ->whereBetween('start_time', [$startOfMonth, $endOfMonth])
             ->sum('budget');
 
         $kpis = Kpi::whereIn('streamer_id', $streamerIds)
