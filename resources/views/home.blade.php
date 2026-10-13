@@ -13,7 +13,7 @@
                 <span>Nền tảng Quản trị & Marketplace Booking Streamer B2B</span>
             </div>
             <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight mb-6">
-                Kết Nối Nhãn Hàng Với <span class="bg-gradient-to-r from-primary-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">Top Talent Streamers</span>
+                Kết Nối Nhãn Hàng Với <span class="bg-gradient-to-r from-violet-300 via-fuchsia-300 to-pink-400 bg-clip-text text-transparent">Top Talent Streamers</span>
             </h1>
             <p class="text-lg sm:text-xl text-slate-300 mb-8 font-light leading-relaxed">
                 Hệ thống quản lý Agency toàn diện: Hồ sơ Talent Press Kit chuẩn xác, thuật toán khóa lịch không trùng lặp, theo dõi KPI tự động và trợ lý AI tư vấn thông minh.
