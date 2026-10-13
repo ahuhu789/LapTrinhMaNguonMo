@@ -29,6 +29,7 @@ class AiRecommendationService
                     'avg_viewers' => $t->avg_viewers,
                     'peak_viewers' => $t->peak_viewers,
                     'bio' => $t->bio,
+                    'avatar_url' => $t->avatar_url,
                     'profile_url' => url('/talents/' . $t->id),
                 ];
             })->toArray();
@@ -60,47 +61,61 @@ class AiRecommendationService
      */
     protected function callGeminiApi(string $query, array $talents, string $apiKey): array
     {
-        try {
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $apiKey;
+        $models = [
+            'gemini-3.5-flash-lite',
+            'gemini-flash-lite-latest',
+            'gemini-3.7-flash',
+            'gemini-3.1-flash-lite',
+            'gemini-3.8-flash',
+        ];
 
-            $systemInstruction = "Bạn là Trợ lý Cố vấn Booking Talent của MCN Platform. Nhiệm vụ của bạn là dựa vào CSDL Talent Streamers được cung cấp bên dưới để tư vấn và gợi ý 1 đến 3 streamer phù hợp nhất với yêu cầu, ngân sách và thể loại của nhãn hàng. Trả lời bằng tiếng Việt, súc tích, thân thiện, nêu rõ lý do gợi ý và mức giá tham khảo.";
+        $systemInstruction = "Bạn là Trợ lý Cố vấn Booking Talent của MCN Platform. Nhiệm vụ của bạn là dựa vào CSDL Talent Streamers được cung cấp bên dưới để tư vấn và gợi ý 1 đến 3 streamer phù hợp nhất với yêu cầu, ngân sách và thể loại của nhãn hàng. Trả lời bằng tiếng Việt, súc tích, thân thiện, nêu rõ lý do gợi ý và mức giá tham khảo.";
 
-            $prompt = $systemInstruction . "\n\n" .
-                "DANH SÁCH TALENT TRONG HỆ THỐNG:\n" . json_encode($talents, JSON_UNESCAPED_UNICODE) . "\n\n" .
-                "YÊU CẦU TỪ KHÁCH HÀNG:\n" . $query;
+        $prompt = $systemInstruction . "\n\n" .
+            "DANH SÁCH TALENT TRONG HỆ THỐNG:\n" . json_encode($talents, JSON_UNESCAPED_UNICODE) . "\n\n" .
+            "YÊU CẦU TỪ KHÁCH HÀNG:\n" . $query;
 
-            $payload = [
-                'contents' => [
-                    [
-                        'parts' => [
-                            ['text' => $prompt]
-                        ]
+        $payload = [
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => $prompt]
                     ]
-                ],
-                'generationConfig' => [
-                    'temperature' => 0.4,
-                    'maxOutputTokens' => 800,
                 ]
-            ];
+            ],
+            'generationConfig' => [
+                'temperature' => 0.4,
+                'maxOutputTokens' => 800,
+            ]
+        ];
 
-            $response = Http::timeout(6)->withHeaders([
-                'Content-Type' => 'application/json'
-            ])->post($url, $payload);
+        foreach ($models as $model) {
+            try {
+                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . $apiKey;
 
-            if ($response->successful()) {
-                $data = $response->json();
-                $reply = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
-                if (!empty($reply)) {
-                    return [
-                        'success' => true,
-                        'source' => 'gemini_ai',
-                        'reply' => $reply,
-                        'matched_talents' => $this->extractRelevantTalents($query, $talents),
-                    ];
+                $response = Http::withoutVerifying()
+                    ->timeout(10)
+                    ->withHeaders([
+                        'Content-Type' => 'application/json'
+                    ])->post($url, $payload);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $reply = $data['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                    if (!empty($reply)) {
+                        return [
+                            'success' => true,
+                            'source' => 'gemini_ai',
+                            'model' => $model,
+                            'reply' => $reply,
+                            'matched_talents' => $this->extractRelevantTalents($query, $talents, $reply),
+                        ];
+                    }
                 }
+            } catch (Exception $e) {
+                // Thử model tiếp theo trong danh sách
+                continue;
             }
-        } catch (Exception $e) {
-            // Lỗi mạng hoặc quá thời gian -> Chuyển sang fallback
         }
 
         return ['success' => false];
@@ -246,9 +261,36 @@ class AiRecommendationService
     /**
      * Trích xuất danh sách Streamer khớp để hiển thị danh thiếp gợi ý
      */
-    protected function extractRelevantTalents(string $query, array $talents): array
+    protected function extractRelevantTalents(string $query, array $talents, string $reply = ''): array
     {
-        $fallback = $this->fallbackRuleBasedRecommendation($query, $talents);
-        return $fallback['matched_talents'] ?? array_slice($talents, 0, 3);
+        $matched = [];
+        $queryAndReplyLower = mb_strtolower($query . ' ' . $reply);
+
+        // 1. Ưu tiên các Streamer có tên nghệ danh xuất hiện trong câu trả lời của AI hoặc câu hỏi
+        foreach ($talents as $talent) {
+            $nameLower = mb_strtolower($talent['stage_name']);
+            if (str_contains($queryAndReplyLower, $nameLower)) {
+                $matched[] = $talent;
+            }
+        }
+
+        // 2. Nếu chưa đủ 3 người, bổ sung thêm từ thuật toán rule-based
+        if (count($matched) < 3) {
+            $fallback = $this->fallbackRuleBasedRecommendation($query, $talents);
+            $fallbackTalents = $fallback['matched_talents'] ?? [];
+            $existingIds = array_column($matched, 'id');
+
+            foreach ($fallbackTalents as $ft) {
+                if (!in_array($ft['id'], $existingIds)) {
+                    $matched[] = $ft;
+                    $existingIds[] = $ft['id'];
+                }
+                if (count($matched) >= 3) {
+                    break;
+                }
+            }
+        }
+
+        return array_slice($matched, 0, 3);
     }
 }
