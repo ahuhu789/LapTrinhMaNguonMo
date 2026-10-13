@@ -65,7 +65,7 @@
                         <i class="fas fa-users-gear mr-1"></i> Manager 1
                     </button>
                     <button type="button" onclick="fillLogin('streamer1@mcn.com')" class="p-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 font-medium text-left">
-                        <i class="fas fa-video mr-1"></i> Streamer (Đạt Pro)
+                        <i class="fas fa-video mr-1"></i> Streamer (Độ Mixi)
                     </button>
                     <button type="button" onclick="fillLogin('client1@mcn.com')" class="p-2 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 font-medium text-left">
                         <i class="fas fa-building mr-1"></i> Client (GearVN)
