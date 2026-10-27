@@ -127,7 +127,7 @@
                                 <td class="py-3 px-4 text-emerald-600 font-semibold">+{{ number_format($m->followers_gained, 0, ',', '.') }}</td>
                                 <td class="py-3 px-4">
                                     <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
-                                        {{ $m->source_type }}
+                                        {{ ['csv_import' => 'Nhập CSV', 'manual_entry' => 'Nhập tay', 'mock_api' => 'API mô phỏng'][$m->source_type] ?? $m->source_type }}
                                     </span>
                                 </td>
                             </tr>
