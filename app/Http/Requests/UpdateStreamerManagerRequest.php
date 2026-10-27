@@ -26,6 +26,7 @@ class UpdateStreamerManagerRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'manager_id.integer' => 'Manager không hợp lệ.',
             'manager_id.exists' => 'Người được chọn không tồn tại hoặc không phải là Manager.',
         ];
     }

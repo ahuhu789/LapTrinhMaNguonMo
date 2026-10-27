@@ -26,6 +26,7 @@ class CheckCollisionRequest extends FormRequest
     {
         return [
             'streamer_id.required' => 'Vui lòng chọn Streamer.',
+            'streamer_id.integer' => 'Streamer không hợp lệ.',
             'streamer_id.exists' => 'Streamer không tồn tại.',
             'start_time.required' => 'Vui lòng chọn thời gian bắt đầu.',
             'start_time.date' => 'Thời gian bắt đầu không hợp lệ.',

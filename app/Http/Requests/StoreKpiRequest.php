@@ -30,9 +30,19 @@ class StoreKpiRequest extends FormRequest
     {
         return [
             'streamer_id.required' => 'Vui lòng chọn Streamer.',
+            'streamer_id.integer' => 'Streamer không hợp lệ.',
+            'streamer_id.exists' => 'Streamer không tồn tại.',
             'month_year.required' => 'Vui lòng chọn tháng/năm áp dụng KPI.',
+            'month_year.date_format' => 'Tháng/năm phải có định dạng YYYY-MM.',
+            'target_hours.required' => 'Vui lòng nhập số giờ stream mục tiêu.',
+            'target_hours.numeric' => 'Số giờ stream mục tiêu phải là số.',
             'target_hours.min' => 'Số giờ stream mục tiêu tối thiểu là 1 giờ.',
+            'target_revenue.required' => 'Vui lòng nhập doanh thu mục tiêu.',
+            'target_revenue.numeric' => 'Doanh thu mục tiêu phải là số.',
             'target_revenue.min' => 'Doanh thu mục tiêu không thể là số âm.',
+            'target_avg_viewers.required' => 'Vui lòng nhập số người xem trung bình mục tiêu.',
+            'target_avg_viewers.integer' => 'Số người xem trung bình mục tiêu phải là số nguyên.',
+            'target_avg_viewers.min' => 'Số người xem trung bình mục tiêu không thể là số âm.',
         ];
     }
 }

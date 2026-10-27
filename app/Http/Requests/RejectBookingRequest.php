@@ -24,6 +24,9 @@ class RejectBookingRequest extends FormRequest
     {
         return [
             'reject_reason.required' => 'Vui lòng cung cấp lý do từ chối để phản hồi đến khách hàng.',
+            'reject_reason.string' => 'Lý do từ chối không hợp lệ.',
+            'reject_reason.min' => 'Lý do từ chối tối thiểu 5 ký tự.',
+            'reject_reason.max' => 'Lý do từ chối tối đa 500 ký tự.',
         ];
     }
 }

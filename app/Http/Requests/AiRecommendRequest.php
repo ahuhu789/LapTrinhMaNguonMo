@@ -22,7 +22,9 @@ class AiRecommendRequest extends FormRequest
     {
         return [
             'message.required' => 'Vui lòng nhập nhu cầu booking của bạn.',
+            'message.string' => 'Nội dung không hợp lệ.',
             'message.min' => 'Nội dung quá ngắn.',
+            'message.max' => 'Nội dung tối đa 500 ký tự.',
         ];
     }
 }

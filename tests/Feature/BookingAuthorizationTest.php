@@ -150,4 +150,27 @@ class BookingAuthorizationTest extends TestCase
         $this->post(route('login.post'), ['email' => 'x@test.local', 'password' => 'wrong'])
             ->assertStatus(429);
     }
+
+    public function test_check_collision_validation_messages_are_vietnamese(): void
+    {
+        $this->actingAs($this->makeUser('client'))
+            ->postJson(route('bookings.check-collision'), [])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.streamer_id.0', 'Vui lòng chọn Streamer.')
+            ->assertJsonPath('errors.start_time.0', 'Vui lòng chọn thời gian bắt đầu.')
+            ->assertJsonPath('errors.end_time.0', 'Vui lòng chọn thời gian kết thúc.');
+    }
+
+    public function test_ai_recommend_is_public_and_throttled(): void
+    {
+        for ($i = 0; $i < 10; $i++) {
+            $this->postJson(route('ai.recommend'), [])
+                ->assertStatus(422)
+                ->assertJsonPath('errors.message.0', 'Vui lòng nhập nhu cầu booking của bạn.');
+        }
+
+        $this->postJson(route('ai.recommend'), [])
+            ->assertStatus(429)
+            ->assertHeader('Retry-After');
+    }
 }

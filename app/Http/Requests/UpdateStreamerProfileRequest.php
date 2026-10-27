@@ -27,7 +27,20 @@ class UpdateStreamerProfileRequest extends FormRequest
     {
         return [
             'stage_name.required' => 'Nghệ danh không được để trống.',
+            'stage_name.string' => 'Nghệ danh không hợp lệ.',
+            'stage_name.max' => 'Nghệ danh tối đa 100 ký tự.',
+            'category.required' => 'Vui lòng chọn thể loại.',
+            'category.string' => 'Thể loại không hợp lệ.',
+            'category.max' => 'Thể loại tối đa 100 ký tự.',
+            'bio.string' => 'Giới thiệu không hợp lệ.',
+            'bio.max' => 'Giới thiệu tối đa 2000 ký tự.',
+            'rate_per_hour.required' => 'Vui lòng nhập giá booking theo giờ.',
+            'rate_per_hour.numeric' => 'Giá booking phải là số.',
             'rate_per_hour.min' => 'Giá tối thiểu là 100.000 VNĐ/giờ.',
+            'avatar_url.url' => 'Link ảnh đại diện không hợp lệ.',
+            'avatar_url.max' => 'Link ảnh đại diện tối đa 255 ký tự.',
+            'banner_url.url' => 'Link ảnh bìa không hợp lệ.',
+            'banner_url.max' => 'Link ảnh bìa tối đa 255 ký tự.',
         ];
     }
 }
