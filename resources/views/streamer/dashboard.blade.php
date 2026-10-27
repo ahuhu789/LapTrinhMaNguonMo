@@ -132,8 +132,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const ctx = document.getElementById('streamerTrendChart');
     if (!ctx) return;
 
-    const rawDates = {!! json_encode($chartMetrics->pluck('stream_date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d/m'))) !!};
-    const rawAvg = {!! json_encode($chartMetrics->pluck('avg_viewers')) !!};
+    const rawDates = {{ Js::from($chartMetrics->pluck('stream_date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d/m'))) }};
+    const rawAvg = {{ Js::from($chartMetrics->pluck('avg_viewers')) }};
 
     new Chart(ctx, {
         type: 'line',

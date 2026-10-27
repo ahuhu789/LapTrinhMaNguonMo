@@ -219,9 +219,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const ctx = document.getElementById('viewerTrendChart');
     if (!ctx) return;
 
-    const rawDates = {!! json_encode($recentMetrics->pluck('stream_date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d/m'))) !!};
-    const rawAvg = {!! json_encode($recentMetrics->pluck('avg_viewers')) !!};
-    const rawPeak = {!! json_encode($recentMetrics->pluck('peak_viewers')) !!};
+    const rawDates = {{ Js::from($recentMetrics->pluck('stream_date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d/m'))) }};
+    const rawAvg = {{ Js::from($recentMetrics->pluck('avg_viewers')) }};
+    const rawPeak = {{ Js::from($recentMetrics->pluck('peak_viewers')) }};
 
     new Chart(ctx, {
         type: 'line',
