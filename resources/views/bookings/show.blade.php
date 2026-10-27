@@ -23,7 +23,12 @@
                 ? $booking->isRejectable()
                 : in_array($booking->status, ['pending'], true);
             $canRejectBooking = $canManageBooking && $isRejectable;
-            $canApproveBooking = $canManageBooking && in_array($booking->status, ['pending', 'reviewing']);
+            $isApprovable = method_exists($booking, 'isApprovable')
+                ? $booking->isApprovable()
+                : in_array($booking->status, ['pending', 'reviewing'], true);
+            $canApproveBooking = $canManageBooking && $isApprovable;
+            // $conflictInfo now only reports conflicts that block approval.
+            $approvalBlocked = !empty($conflictInfo['has_conflict']);
         @endphp
 
         <!-- Approval / Rejection Actions for Manager / Admin -->
@@ -36,9 +41,14 @@
                 </button>
                 @endif
 
-                @if($canApproveBooking)
+                @if($canApproveBooking && $approvalBlocked)
+                <button type="button" disabled title="Không thể duyệt: khung giờ trùng lịch đã khóa" class="px-5 py-2.5 rounded-xl bg-slate-200 text-slate-500 font-bold text-xs cursor-not-allowed flex items-center space-x-1.5">
+                    <i class="fas fa-lock"></i>
+                    <span>Không thể duyệt (trùng lịch)</span>
+                </button>
+                @elseif($canApproveBooking)
                 <!-- Approve Button (with Collision Lock) -->
-                <form action="{{ route('bookings.approve', $booking->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn duyệt và khóa lịch trình cho Talent này?');">
+                <form action="{{ route('bookings.approve', $booking->id) }}" method="POST" onsubmit="return confirm('Duyệt và khóa lịch cho Talent này? Các booking chờ duyệt khác trùng khung giờ sẽ được tự động từ chối.');">
                     @csrf
                     <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 transition flex items-center space-x-1.5">
                         <i class="fas fa-check-double"></i>
@@ -56,39 +66,46 @@
             <div class="flex items-start space-x-3">
                 <i class="fas fa-triangle-exclamation text-rose-600 text-2xl mt-0.5"></i>
                 <div>
-                    <h4 class="font-extrabold text-sm text-rose-800 uppercase tracking-wide">Phát Hiện Xung Đột Lịch Trình (Collision Detected!)</h4>
-                    <p class="text-xs text-rose-700 mt-1">
-                        {{ $conflictInfo['message'] }}
+                    <h4 class="font-extrabold text-sm text-rose-800 uppercase tracking-wide">Chưa thể phê duyệt: trùng lịch đã khóa</h4>
+                    <p class="text-xs text-rose-700 mt-1 break-words">
+                        {{ $conflictInfo['message'] ?? 'Khung giờ này trùng với lịch đã được khóa của Talent.' }}
                     </p>
                     <p class="text-xs text-rose-600 font-semibold mt-2">
-                        * Bạn cần từ chối đơn này hoặc yêu cầu khách hàng chọn khung giờ khác trước khi có thể duyệt.
+                        * Khung giờ đang bị chiếm bởi lịch đã khóa của Talent nên hệ thống sẽ chặn thao tác duyệt. Hãy đề nghị khách hàng chọn khung giờ khác hoặc từ chối đơn này.
                     </p>
                 </div>
             </div>
         </div>
-    @elseif(in_array($booking->status, ['pending', 'reviewing']))
-        <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-6 text-emerald-800 flex items-center shadow-sm text-xs font-semibold">
+    @elseif($canApproveBooking)
+        <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-6 text-emerald-800 flex items-start shadow-sm text-xs font-semibold">
             <i class="fas fa-circle-check text-emerald-600 text-base mr-2"></i>
-            <span>Khung giờ khả dụng: Streamer hoàn toàn không bị trùng lịch nào trong thời gian diễn ra chiến dịch.</span>
+            <span>Khung giờ khả dụng: không trùng lịch đã khóa của Talent. Khi phê duyệt, các booking chờ duyệt khác trùng khung giờ (nếu có) sẽ được hệ thống tự động từ chối.</span>
         </div>
     @endif
 
     <!-- Rejection Reason if Rejected -->
     @if($booking->status === 'rejected')
         @php
-            // Backend may rename the column (rejection_reason); support both, null-safe.
             $rejectReason = trim((string) ($booking->rejection_reason ?? $booking->reject_reason ?? ''));
+            $autoPrefix = 'Tự động từ chối:';
+            $isAutoRejected = str_starts_with($rejectReason, $autoPrefix);
+            $reasonText = $isAutoRejected ? trim(mb_substr($rejectReason, mb_strlen($autoPrefix))) : $rejectReason;
         @endphp
-        <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 mb-6 text-rose-900" role="alert">
-            <h4 class="font-bold text-sm text-rose-800 flex items-center mb-1">
-                <i class="fas fa-circle-xmark mr-2 text-rose-600"></i> Booking đã bị từ chối
-            </h4>
-            @if($rejectReason !== '')
-                <p class="text-xs text-rose-700 pl-6"><span class="font-semibold">Lý do:</span> {{ $rejectReason }}</p>
-            @else
-                <p class="text-xs text-rose-700 pl-6">Không có lý do cụ thể được ghi nhận.</p>
-            @endif
-        </div>
+        @if($isAutoRejected)
+            <div class="bg-amber-50 border border-amber-300 rounded-2xl p-5 mb-6 text-amber-900" role="alert">
+                <h4 class="font-bold text-sm text-amber-800 flex items-center mb-1">
+                    <i class="fas fa-robot mr-2 text-amber-600"></i> Hệ thống đã tự động từ chối booking này
+                </h4>
+                <p class="text-xs text-amber-800 pl-6 break-words"><span class="font-semibold">Lý do:</span> {{ $reasonText !== '' ? $reasonText : 'Trùng khung giờ với một booking khác đã được duyệt.' }}</p>
+            </div>
+        @else
+            <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 mb-6 text-rose-900" role="alert">
+                <h4 class="font-bold text-sm text-rose-800 flex items-center mb-1">
+                    <i class="fas fa-circle-xmark mr-2 text-rose-600"></i> Booking đã bị từ chối
+                </h4>
+                <p class="text-xs text-rose-700 pl-6 break-words"><span class="font-semibold">Lý do:</span> {{ $reasonText !== '' ? $reasonText : 'Không có lý do cụ thể được ghi nhận.' }}</p>
+            </div>
+        @endif
     @endif
 
     <!-- 2 Column Details: Parties & Financials -->

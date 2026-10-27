@@ -113,23 +113,23 @@
         <!-- Scrollable Main Container -->
         <main class="flex-1 overflow-y-auto p-6 bg-slate-100">
             @if(session('success'))
-                <div role="status" class="p-4 mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center shadow-sm">
-                    <i class="fas fa-circle-check text-emerald-500 mr-3 text-lg"></i>
-                    <div>{{ session('success') }}</div>
+                <div role="status" class="p-4 mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start shadow-sm">
+                    <i class="fas fa-circle-check text-emerald-500 mr-3 text-lg leading-6 shrink-0"></i>
+                <div class="min-w-0 break-words whitespace-pre-line leading-6">{{ session('success') }}</div>
                 </div>
             @endif
 
             @if(session('error'))
-                <div role="alert" class="p-4 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center shadow-sm">
-                    <i class="fas fa-circle-exclamation text-rose-500 mr-3 text-lg"></i>
-                    <div>{{ session('error') }}</div>
+                <div role="alert" class="p-4 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start shadow-sm">
+                    <i class="fas fa-circle-exclamation text-rose-500 mr-3 text-lg leading-6 shrink-0"></i>
+                <div class="min-w-0 break-words whitespace-pre-line leading-6">{{ session('error') }}</div>
                 </div>
             @endif
 
             @if(session('warning'))
-                <div role="alert" class="p-4 mb-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center shadow-sm">
-                    <i class="fas fa-triangle-exclamation text-amber-500 mr-3 text-lg"></i>
-                    <div>{{ session('warning') }}</div>
+                <div role="alert" class="p-4 mb-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start shadow-sm">
+                    <i class="fas fa-triangle-exclamation text-amber-500 mr-3 text-lg leading-6 shrink-0"></i>
+                <div class="min-w-0 break-words whitespace-pre-line leading-6">{{ session('warning') }}</div>
                 </div>
             @endif
 
