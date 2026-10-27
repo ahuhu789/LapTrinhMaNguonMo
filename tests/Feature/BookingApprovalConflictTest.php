@@ -62,7 +62,11 @@ class BookingApprovalConflictTest extends TestCase
 
         $this->assertSame('approved', $first->fresh()->status);
         $this->assertSame('rejected', $second->fresh()->status);
-        $this->assertSame('Xung đột với lịch đã được duyệt', $second->fresh()->reject_reason);
+        $this->assertSame(
+            'Tự động từ chối: Xung đột với lịch đã được duyệt ('
+                . $first->start_time->format('H:i d/m/Y') . ' – ' . $first->end_time->format('H:i d/m/Y') . ')',
+            $second->fresh()->reject_reason
+        );
         $this->assertSame(1, Schedule::where('streamer_id', $streamer->id)->count());
     }
 
@@ -89,7 +93,7 @@ class BookingApprovalConflictTest extends TestCase
 
     public static function nonRejectableStatusProvider(): array
     {
-        return [['approved'], ['rejected'], ['completed'], ['cancelled'], ['reviewing']];
+        return [['approved'], ['rejected'], ['completed'], ['cancelled']];
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('nonRejectableStatusProvider')]
@@ -104,7 +108,7 @@ class BookingApprovalConflictTest extends TestCase
             ->from(route('bookings.show', $booking))
             ->post(route('bookings.reject', $booking), ['reject_reason' => 'Đổi kế hoạch truyền thông'])
             ->assertRedirect(route('bookings.show', $booking))
-            ->assertSessionHas('error', fn ($msg) => str_starts_with($msg, 'Không thể từ chối! Chỉ booking đang chờ duyệt'))
+            ->assertSessionHas('error', fn ($msg) => str_starts_with($msg, 'Không thể từ chối! Chỉ booking đang chờ duyệt hoặc đang xem xét mới được từ chối'))
             ->assertSessionMissing('success');
 
         $fresh = $booking->fresh();

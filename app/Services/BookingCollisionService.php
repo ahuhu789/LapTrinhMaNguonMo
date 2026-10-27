@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\DB;
  */
 class BookingCollisionService
 {
-    public const REASON_APPROVED_CONFLICT = 'Xung đột với lịch đã được duyệt';
+    public const AUTO_REJECT_PREFIX = 'Tự động từ chối: ';
 
     /**
      * Kiểm tra xung đột cho một khung giờ (dùng cho AJAX check-collision, cảnh báo, lịch cá nhân streamer).
@@ -92,7 +92,7 @@ class BookingCollisionService
                 'budget' => $data['budget'],
                 'commission_rate' => config('mcn.commission_rate'),
                 'status' => $reason ? 'rejected' : 'pending',
-                'reject_reason' => $reason ? 'Tự động từ chối: ' . $reason : null,
+                'reject_reason' => $reason ? self::AUTO_REJECT_PREFIX . $reason : null,
             ]);
         });
     }
@@ -123,7 +123,7 @@ class BookingCollisionService
                     $locked->update([
                         'status' => 'rejected',
                         'manager_id' => $managerId,
-                        'reject_reason' => 'Tự động từ chối: ' . $conflict['message'],
+                        'reject_reason' => self::AUTO_REJECT_PREFIX . $conflict['message'],
                     ]);
 
                     return [
@@ -173,7 +173,7 @@ class BookingCollisionService
     }
 
     /**
-     * Manager từ chối thủ công (chỉ booking 'pending').
+     * Manager từ chối thủ công (booking 'pending' hoặc 'reviewing').
      */
     public function rejectBooking(Booking $booking, int $managerId, string $rejectReason): array
     {
@@ -185,7 +185,7 @@ class BookingCollisionService
                 if (!$locked->isRejectable()) {
                     return [
                         'success' => false,
-                        'message' => 'Không thể từ chối! Chỉ booking đang chờ duyệt mới được từ chối (trạng thái hiện tại: ' . $locked->status_label . ').',
+                        'message' => 'Không thể từ chối! Chỉ booking đang chờ duyệt hoặc đang xem xét mới được từ chối (trạng thái hiện tại: ' . $locked->status_label . ').',
                     ];
                 }
 
@@ -247,12 +247,7 @@ class BookingCollisionService
                 ->first();
 
             if ($own) {
-                return sprintf(
-                    'Trùng với booking #%d của bạn từ %s đến %s.',
-                    $own->id,
-                    $this->fmt($own->start_time),
-                    $this->fmt($own->end_time)
-                );
+                return sprintf('Trùng với booking #%d của bạn từ %s.', $own->id, $this->range($own->start_time, $own->end_time, ' đến '));
             }
         }
 
@@ -265,21 +260,29 @@ class BookingCollisionService
             ->orderBy('start_time')
             ->first();
 
-        $booking = $this->overlapping(Booking::query(), $start, $end)
+        $talentBookings = fn (array $statuses) => $this->overlapping(Booking::query(), $start, $end)
             ->where('streamer_id', $streamerId)
-            ->whereIn('status', $bookingStatuses)
+            ->whereIn('status', $statuses)
             ->when($ignoreBookingId, fn ($q) => $q->whereKeyNot($ignoreBookingId))
             ->orderBy('start_time')
             ->first();
 
-        $busy = collect([$schedule, $booking])->filter()->sortBy(fn ($m) => $m->start_time->getTimestamp())->first();
+        // 1a. Lịch bận chắc chắn: lịch đã khóa hoặc booking đã duyệt
+        $busy = collect([
+            $schedule,
+            in_array('approved', $bookingStatuses, true) ? $talentBookings(['approved']) : null,
+        ])->filter()->sortBy(fn ($m) => $m->start_time->getTimestamp())->first();
 
         if ($busy) {
-            return sprintf(
-                'Trùng với lịch bận của talent từ %s đến %s.',
-                $this->fmt($busy->start_time),
-                $this->fmt($busy->end_time)
-            );
+            return sprintf('Trùng với lịch bận của talent từ %s.', $this->range($busy->start_time, $busy->end_time, ' đến '));
+        }
+
+        // 1b. Booking khác của talent đang chờ duyệt / đang xem xét
+        $waitingStatuses = array_values(array_intersect($bookingStatuses, Booking::APPROVABLE_STATUSES));
+        $waiting = $waitingStatuses ? $talentBookings($waitingStatuses) : null;
+
+        if ($waiting) {
+            return sprintf('Trùng với một booking khác đang chờ duyệt của talent từ %s.', $this->range($waiting->start_time, $waiting->end_time, ' đến '));
         }
 
         return null;
@@ -300,7 +303,10 @@ class BookingCollisionService
 
         $count = $talentIds->isEmpty() ? 0 : Booking::whereIn('id', $talentIds)->update([
             'status' => 'rejected',
-            'reject_reason' => self::REASON_APPROVED_CONFLICT,
+            'reject_reason' => self::AUTO_REJECT_PREFIX . sprintf(
+                'Xung đột với lịch đã được duyệt (%s)',
+                $this->range($approved->start_time, $approved->end_time, ' – ')
+            ),
             'updated_at' => now(),
         ]);
 
@@ -310,7 +316,7 @@ class BookingCollisionService
             ->whereKeyNot($approved->id)
             ->update([
                 'status' => 'rejected',
-                'reject_reason' => sprintf('Xung đột với booking #%d của bạn đã được duyệt.', $approved->id),
+                'reject_reason' => self::AUTO_REJECT_PREFIX . sprintf('Xung đột với booking #%d của bạn đã được duyệt.', $approved->id),
                 'updated_at' => now(),
             ]);
 
@@ -342,6 +348,11 @@ class BookingCollisionService
     protected function toAppTime($value): Carbon
     {
         return Carbon::parse($value)->setTimezone(config('app.timezone'));
+    }
+
+    protected function range(CarbonInterface $from, CarbonInterface $to, string $separator): string
+    {
+        return $this->fmt($from) . $separator . $this->fmt($to);
     }
 
     protected function fmt(CarbonInterface $time): string

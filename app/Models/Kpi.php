@@ -49,16 +49,6 @@ class Kpi extends Model
         return (int) min(100, round($pct));
     }
 
-    public function getFormattedTargetRevenueAttribute(): string
-    {
-        return number_format($this->target_revenue, 0, ',', '.') . ' đ';
-    }
-
-    public function getFormattedAchievedRevenueAttribute(): string
-    {
-        return number_format($this->achieved_revenue, 0, ',', '.') . ' đ';
-    }
-
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {

@@ -135,7 +135,10 @@ class BookingRulesTest extends TestCase
         $mine = $this->lastBooking();
 
         $this->assertSame('rejected', $mine->status);
-        $this->assertStringContainsString('Trùng với lịch bận của talent từ 14:00 05/11/2026 đến 16:00 05/11/2026', $mine->reject_reason);
+        $this->assertSame(
+            'Tự động từ chối: Trùng với một booking khác đang chờ duyệt của talent từ 14:00 05/11/2026 đến 16:00 05/11/2026.',
+            $mine->reject_reason
+        );
         foreach (['#' . $otherBooking->id, 'Khách Bí Mật', 'tuyệt mật', $other->email] as $secret) {
             $this->assertStringNotContainsString($secret, $mine->reject_reason);
         }
@@ -278,10 +281,10 @@ class BookingRulesTest extends TestCase
         $this->assertSame('approved', $target->fresh()->status);
         foreach ([$overlapPending, $overlapReviewing] as $b) {
             $this->assertSame('rejected', $b->fresh()->status);
-            $this->assertSame('Xung đột với lịch đã được duyệt', $b->fresh()->reject_reason);
+            $this->assertSame('Tự động từ chối: Xung đột với lịch đã được duyệt (14:00 05/11/2026 – 16:00 05/11/2026)', $b->fresh()->reject_reason);
         }
         $this->assertSame('rejected', $sameClientOtherTalent->fresh()->status);
-        $this->assertSame("Xung đột với booking #{$target->id} của bạn đã được duyệt.", $sameClientOtherTalent->fresh()->reject_reason);
+        $this->assertSame("Tự động từ chối: Xung đột với booking #{$target->id} của bạn đã được duyệt.", $sameClientOtherTalent->fresh()->reject_reason);
         $this->assertSame('pending', $touching->fresh()->status);
         $this->assertSame('pending', $otherTalent->fresh()->status);
         $this->assertSame(1, Schedule::where('reference_id', $target->id)->count());
@@ -320,16 +323,45 @@ class BookingRulesTest extends TestCase
         $this->assertTrue($info['has_conflict']);
     }
 
-    public function test_reviewing_booking_can_be_approved_but_not_manually_rejected(): void
+    public function test_reviewing_booking_can_be_approved_or_manually_rejected(): void
     {
-        $booking = Booking::factory()->for($this->talent, 'streamer')->create(['status' => 'reviewing']);
+        $toReject = Booking::factory()->for($this->talent, 'streamer')
+            ->between('2026-11-05 08:00:00', '2026-11-05 09:00:00')->create(['status' => 'reviewing']);
+        $toApprove = Booking::factory()->for($this->talent, 'streamer')
+            ->between('2026-11-05 10:00:00', '2026-11-05 11:00:00')->create(['status' => 'reviewing']);
 
         $this->actingAs($this->manager)
-            ->post(route('bookings.reject', $booking), ['reject_reason' => 'Không phù hợp'])
-            ->assertSessionHas('error');
-        $this->actingAs($this->manager)->post(route('bookings.approve', $booking))->assertSessionHas('success');
+            ->post(route('bookings.reject', $toReject), ['reject_reason' => 'Không phù hợp định hướng'])
+            ->assertSessionHas('success');
+        $this->actingAs($this->manager)->post(route('bookings.approve', $toApprove))->assertSessionHas('success');
 
-        $this->assertSame('approved', $booking->fresh()->status);
+        $this->assertSame('rejected', $toReject->fresh()->status);
+        $this->assertSame('Không phù hợp định hướng', $toReject->fresh()->reject_reason);
+        $this->assertSame('approved', $toApprove->fresh()->status);
+    }
+
+    public function test_conflict_with_locked_or_approved_slot_says_busy_not_pending(): void
+    {
+        Booking::factory()->for($this->talent, 'streamer')
+            ->between('2026-11-05 14:00:00', '2026-11-05 16:00:00')->approved()->create();
+        Booking::factory()->for($this->talent, 'streamer')
+            ->between('2026-11-05 18:00:00', '2026-11-05 19:00:00')->create(['status' => 'reviewing']);
+
+        $service = app(BookingCollisionService::class);
+
+        $this->assertSame(
+            'Trùng với lịch bận của talent từ 14:00 05/11/2026 đến 16:00 05/11/2026.',
+            $service->checkCollision($this->talent->id, '2026-11-05 15:00', '2026-11-05 15:30', null, $this->client->id)['message']
+        );
+        $this->assertSame(
+            'Trùng với một booking khác đang chờ duyệt của talent từ 18:00 05/11/2026 đến 19:00 05/11/2026.',
+            $service->checkCollision($this->talent->id, '2026-11-05 18:30', '2026-11-05 20:00', null, $this->client->id)['message']
+        );
+        // vừa trùng booking đã duyệt vừa trùng booking chờ duyệt -> báo lịch bận
+        $this->assertStringStartsWith(
+            'Trùng với lịch bận của talent',
+            $service->checkCollision($this->talent->id, '2026-11-05 15:00', '2026-11-05 18:30', null, $this->client->id)['message']
+        );
     }
 
     // ---------------------------------------------------------------- lịch streamer

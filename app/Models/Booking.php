@@ -17,8 +17,8 @@ class Booking extends Model
     /** Trạng thái cho phép phê duyệt */
     public const APPROVABLE_STATUSES = ['pending', 'reviewing'];
 
-    /** Trạng thái cho phép Manager từ chối thủ công (từ chối tự động áp dụng cho pending & reviewing) */
-    public const REJECTABLE_STATUSES = ['pending'];
+    /** Trạng thái cho phép Manager từ chối thủ công */
+    public const REJECTABLE_STATUSES = ['pending', 'reviewing'];
 
     protected $fillable = [
         'client_id',
@@ -84,11 +84,6 @@ class Booking extends Model
             return round($this->start_time->diffInMinutes($this->end_time) / 60, 2);
         }
         return 0;
-    }
-
-    public function getFormattedBudgetAttribute(): string
-    {
-        return number_format((float) $this->budget, 0, ',', '.') . ' đ';
     }
 
     public function getAgencyCommissionAttribute(): float
