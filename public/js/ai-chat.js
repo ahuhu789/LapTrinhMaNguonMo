@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (!toggleBtn || !chatWindow) return;
 
+    const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200';
+
     // Cache initial welcome message HTML for reset
     const initialWelcomeHtml = messagesContainer.innerHTML;
 
@@ -224,7 +226,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <span class="text-[10px] text-slate-400 font-normal lowercase">${talents.length} hồ sơ</span>
                 </div>
                 ${talents.map(t => {
-                    const avatar = t.avatar_url || 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200';
+                    const avatar = safeImageUrl(t.avatar_url);
                     const formattedRate = new Intl.NumberFormat('vi-VN').format(t.rate_per_hour) + ' đ/h';
                     const formattedViews = new Intl.NumberFormat('vi-VN').format(t.avg_viewers);
                     const bioSnippet = t.bio ? escapeHtml(t.bio) : '';
@@ -232,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     return `
                         <div class="p-2.5 rounded-xl bg-slate-50 hover:bg-white border border-slate-200 hover:border-primary-300 hover:shadow-md transition-all duration-150 group">
                             <div class="flex items-center space-x-2.5">
-                                <img src="${avatar}" alt="${escapeHtml(t.stage_name)}" class="w-11 h-11 rounded-lg object-cover border border-slate-200 shadow-2xs shrink-0 group-hover:scale-105 transition-transform" onerror="this.src='https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200'">
+                                <img src="${escapeHtml(avatar)}" alt="${escapeHtml(t.stage_name)}" width="44" height="44" loading="lazy" class="w-11 h-11 rounded-lg object-cover border border-slate-200 shadow-2xs shrink-0 group-hover:scale-105 transition-transform" onerror="this.onerror=null;this.src='${DEFAULT_AVATAR}'">
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center justify-between gap-1">
                                         <span class="font-bold text-slate-800 text-xs truncate flex items-center space-x-1">
@@ -249,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             </div>
                             <div class="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
                                 <span class="text-[10px] text-slate-400 line-clamp-1 flex-1 pr-2">${bioSnippet}</span>
-                                <a href="/talents/${t.id}" target="_blank" class="shrink-0 text-[10px] font-bold text-primary-600 hover:text-primary-700 inline-flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform bg-primary-50 hover:bg-primary-100 px-2 py-0.5 rounded">
+                                <a href="/talents/${encodeURIComponent(t.id)}" target="_blank" class="shrink-0 text-[10px] font-bold text-primary-600 hover:text-primary-700 inline-flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform bg-primary-50 hover:bg-primary-100 px-2 py-0.5 rounded">
                                     <span>Hồ Sơ</span>
                                     <i class="fas fa-arrow-right text-[8px]"></i>
                                 </a>
@@ -293,6 +295,25 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }, 50);
+    }
+
+    // Only allow http(s) or same-origin relative URLs for images; anything else
+    // (javascript:, data:, protocol-relative //host, malformed) falls back to the default avatar.
+    function safeImageUrl(url) {
+        if (typeof url !== 'string') return DEFAULT_AVATAR;
+        const trimmed = url.trim();
+        if (!trimmed) return DEFAULT_AVATAR;
+        // Relative path on the same origin (e.g. /images/streamers/x.jpg) but not //evil.host
+        if (trimmed.startsWith('/') && !trimmed.startsWith('//')) return trimmed;
+        try {
+            const parsed = new URL(trimmed, window.location.origin);
+            if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+                return parsed.href;
+            }
+        } catch (e) {
+            // invalid URL -> fall through to default
+        }
+        return DEFAULT_AVATAR;
     }
 
     function escapeHtml(string) {
