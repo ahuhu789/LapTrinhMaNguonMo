@@ -106,21 +106,21 @@
     <!-- Flash Messages -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full mt-4">
         @if(session('success'))
-            <div class="p-4 mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center shadow-sm">
+            <div role="status" class="p-4 mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center shadow-sm">
                 <i class="fas fa-circle-check text-emerald-500 mr-3 text-lg"></i>
                 <div>{{ session('success') }}</div>
             </div>
         @endif
 
         @if(session('error'))
-            <div class="p-4 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center shadow-sm">
+            <div role="alert" class="p-4 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center shadow-sm">
                 <i class="fas fa-circle-exclamation text-rose-500 mr-3 text-lg"></i>
                 <div>{{ session('error') }}</div>
             </div>
         @endif
 
         @if($errors->any())
-            <div class="p-4 mb-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 shadow-sm">
+            <div role="alert" class="p-4 mb-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 shadow-sm">
                 <div class="font-semibold flex items-center mb-1">
                     <i class="fas fa-triangle-exclamation mr-2 text-amber-500"></i> Có lỗi xảy ra, vui lòng kiểm tra lại:
                 </div>

@@ -153,15 +153,19 @@
 </div>
 
 <!-- Modal Reject -->
-<div id="reject-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+<div id="reject-modal" class="{{ $errors->has('reject_reason') ? '' : 'hidden' }} fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
         <h3 class="text-lg font-bold text-slate-900 mb-2">Từ Chối Booking</h3>
         <p class="text-xs text-slate-500 mb-4">Vui lòng cung cấp lý do từ chối để hệ thống phản hồi đến đối tác.</p>
         
         <form action="{{ route('bookings.reject', $booking->id) }}" method="POST">
             @csrf
-            <textarea name="reject_reason" rows="3" required placeholder="Nhập lý do từ chối (trùng lịch, không phù hợp định hướng...)"
-                class="w-full text-xs border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-rose-500 mb-4"></textarea>
+            <textarea name="reject_reason" rows="3" required minlength="5" maxlength="500" placeholder="Nhập lý do từ chối (trùng lịch, không phù hợp định hướng...)"
+                @error('reject_reason') aria-invalid="true" @enderror
+                class="w-full text-xs border {{ $errors->has('reject_reason') ? 'border-rose-400' : 'border-slate-300' }} rounded-xl p-3 focus:ring-2 focus:ring-rose-500 {{ $errors->has('reject_reason') ? 'mb-1' : 'mb-4' }}">{{ old('reject_reason') }}</textarea>
+            @error('reject_reason')
+                <p class="text-[11px] font-semibold text-rose-600 mb-4" role="alert">{{ $message }}</p>
+            @enderror
 
             <div class="flex justify-end space-x-2">
                 <button type="button" onclick="closeRejectModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">
