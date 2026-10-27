@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CheckCollisionRequest;
 use App\Models\Booking;
 use App\Models\StreamerProfile;
 use App\Models\Schedule;
 use App\Services\BookingCollisionService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -111,6 +113,22 @@ class BookingController extends Controller
 
         return redirect()->route('bookings.show', $booking->id)
             ->with('success', 'Yêu cầu booking của bạn đã được gửi tới Manager phụ trách để phê duyệt.');
+    }
+
+    /**
+     * Kiểm tra nhanh xung đột lịch (AJAX live validation trên form booking)
+     */
+    public function checkCollision(CheckCollisionRequest $request, BookingCollisionService $collisionService): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $result = $collisionService->checkCollision(
+            (int) $validated['streamer_id'],
+            $validated['start_time'],
+            $validated['end_time']
+        );
+
+        return response()->json(['has_conflict' => (bool) $result['has_conflict']]);
     }
 
     /**

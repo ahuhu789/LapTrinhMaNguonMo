@@ -23,13 +23,15 @@ Route::get('/talents', [TalentController::class, 'index'])->name('talents.index'
 Route::get('/talents/{id}', [TalentController::class, 'show'])->name('talents.show');
 
 // AI Assistant Endpoint (Tư vấn công khai cho khách hàng)
-Route::post('/ai/recommend', [AiChatController::class, 'recommend'])->name('ai.recommend');
+Route::post('/ai/recommend', [AiChatController::class, 'recommend'])
+    ->middleware('throttle:10,1')
+    ->name('ai.recommend');
 
 // --- 2. Authentication Routes ---
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login.post');
 Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
-Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('register.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // --- 3. Authenticated Routes chung (Tất cả vai trò đã đăng nhập) ---
@@ -38,6 +40,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
     Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
     Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
+    // Kiểm tra nhanh va chạm lịch trình (AJAX live validation) - chỉ trả về {has_conflict: bool}
+    Route::post('/bookings/check-collision', [BookingController::class, 'checkCollision'])->name('bookings.check-collision');
     Route::get('/bookings/{id}', [BookingController::class, 'show'])->name('bookings.show');
 });
 
