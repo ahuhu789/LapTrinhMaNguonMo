@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Models\StreamerProfile;
 use App\Models\Booking;
 use App\Models\Kpi;
-use App\Models\StreamMetric;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -21,8 +20,6 @@ class AdminController extends Controller
      */
     public function adminDashboard()
     {
-        $currentMonth = Carbon::now()->format('Y-m');
-
         $stats = [
             'total_users' => User::count(),
             'total_managers' => User::where('role', 'manager')->count(),
@@ -119,8 +116,8 @@ class AdminController extends Controller
             StreamerProfile::create([
                 'user_id' => $user->id,
                 'stage_name' => $user->name,
-                'category' => 'Gaming',
-                'rate_per_hour' => 500000,
+                'category' => config('mcn.default_category'),
+                'rate_per_hour' => config('mcn.default_rate_per_hour'),
                 'status' => 'active',
             ]);
         }

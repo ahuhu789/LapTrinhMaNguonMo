@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateStreamerProfileRequest extends FormRequest
 {
@@ -15,7 +16,7 @@ class UpdateStreamerProfileRequest extends FormRequest
     {
         return [
             'stage_name' => ['required', 'string', 'max:100'],
-            'category' => ['required', 'string', 'max:100'],
+            'category' => ['required', 'string', Rule::in(config('mcn.categories'))],
             'bio' => ['nullable', 'string', 'max:2000'],
             'rate_per_hour' => ['required', 'numeric', 'min:100000'],
             'avatar_url' => ['nullable', 'url', 'max:255'],
@@ -31,7 +32,7 @@ class UpdateStreamerProfileRequest extends FormRequest
             'stage_name.max' => 'Nghệ danh tối đa 100 ký tự.',
             'category.required' => 'Vui lòng chọn thể loại.',
             'category.string' => 'Thể loại không hợp lệ.',
-            'category.max' => 'Thể loại tối đa 100 ký tự.',
+            'category.in' => 'Thể loại không hợp lệ.',
             'bio.string' => 'Giới thiệu không hợp lệ.',
             'bio.max' => 'Giới thiệu tối đa 2000 ký tự.',
             'rate_per_hour.required' => 'Vui lòng nhập giá booking theo giờ.',

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreScheduleEventRequest;
 use App\Http\Requests\UpdateStreamerProfileRequest;
-use App\Models\StreamerProfile;
 use App\Models\Schedule;
 use App\Models\Booking;
 use App\Models\Kpi;
@@ -76,7 +75,7 @@ class StreamerController extends Controller
             abort(404, 'Không tìm thấy hồ sơ streamer.');
         }
 
-        $categories = ['Gaming', 'Just Chatting', 'Review', 'Lifestyle', 'Esports', 'Entertainment'];
+        $categories = config('mcn.categories');
 
         return view('streamer.profile_edit', compact('profile', 'categories'));
     }

@@ -177,11 +177,13 @@ class CsvMetricsService
             if (is_resource($handle)) {
                 fclose($handle);
             }
+            report($e);
+
             return [
                 'success' => false,
-                'message' => 'Lỗi xử lý cơ sở dữ liệu: ' . $e->getMessage(),
+                'message' => 'Lỗi hệ thống khi lưu số liệu. Toàn bộ dữ liệu của tệp chưa được nhập, vui lòng thử lại sau.',
                 'imported_count' => 0,
-                'errors' => [$e->getMessage()],
+                'errors' => [],
             ];
         }
     }

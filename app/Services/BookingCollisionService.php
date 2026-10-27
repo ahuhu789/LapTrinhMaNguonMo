@@ -133,9 +133,11 @@ class BookingCollisionService
 
             return $result;
         } catch (Exception $e) {
+            report($e);
+
             return [
                 'success' => false,
-                'message' => 'Lỗi hệ thống khi khóa lịch: ' . $e->getMessage(),
+                'message' => 'Lỗi hệ thống khi phê duyệt và khóa lịch. Vui lòng thử lại sau.',
             ];
         }
     }
@@ -167,9 +169,11 @@ class BookingCollisionService
                 'message' => 'Đã từ chối booking và thông báo lý do đến khách hàng.',
             ];
         } catch (Exception $e) {
+            report($e);
+
             return [
                 'success' => false,
-                'message' => 'Lỗi khi từ chối booking: ' . $e->getMessage(),
+                'message' => 'Lỗi hệ thống khi từ chối booking. Vui lòng thử lại sau.',
             ];
         }
     }

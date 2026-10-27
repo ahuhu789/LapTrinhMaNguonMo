@@ -92,7 +92,7 @@ class BookingController extends Controller
             'end_time' => $validated['end_time'],
             'job_description' => $validated['job_description'],
             'budget' => $validated['budget'],
-            'commission_rate' => 15.00,
+            'commission_rate' => config('mcn.commission_rate'),
             'status' => 'pending',
         ]);
 
