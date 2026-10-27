@@ -71,7 +71,7 @@
                         {{ $conflictInfo['message'] ?? 'Khung giờ này trùng với lịch đã được khóa của Talent.' }}
                     </p>
                     <p class="text-xs text-rose-600 font-semibold mt-2">
-                        * Khung giờ đang trùng với lịch đã khóa của Talent hoặc một booking đã duyệt khác của khách hàng, nên đơn này không thể được duyệt. Nếu vẫn bấm duyệt, hệ thống sẽ tự động từ chối đơn kèm lý do.
+                        * Khung giờ đang trùng với lịch đã khóa của Talent hoặc một booking đã duyệt khác của khách hàng, nên đơn này không thể được duyệt. {{ $canRejectBooking ? 'Nút duyệt đã được khóa; có thể từ chối đơn hoặc đề nghị khách hàng chọn khung giờ khác.' : 'Nếu vẫn bấm duyệt, hệ thống sẽ tự động từ chối đơn kèm lý do.' }}
                     </p>
                 </div>
             </div>
