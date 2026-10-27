@@ -141,4 +141,13 @@ class SecurityAndIntegrationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('source', 'rule_based_fallback');
     }
+
+    public function test_throttle_works_with_default_database_cache_store(): void
+    {
+        config(['cache.default' => 'database']);
+
+        $this->postJson(route('ai.recommend'), [])->assertStatus(422);
+
+        $this->assertGreaterThan(0, \DB::table('cache')->count()); // limiter counter + timer
+    }
 }
