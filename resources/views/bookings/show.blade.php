@@ -17,14 +17,28 @@
             <p class="text-xs text-slate-400 mt-1">Khởi tạo lúc: {{ $booking->created_at->format('H:i d/m/Y') }}</p>
         </div>
 
+        @php
+            $canManageBooking = Auth::user()->isAdmin()
+                || (Auth::user()->isManager() && ($booking->manager_id === Auth::id() || $booking->streamer->manager_id === Auth::id()));
+            // Booking::isRejectable() lives on the backend branch; fall back to the same rule (pending only).
+            $isRejectable = method_exists($booking, 'isRejectable')
+                ? $booking->isRejectable()
+                : in_array($booking->status, ['pending'], true);
+            $canRejectBooking = $canManageBooking && $isRejectable;
+            $canApproveBooking = $canManageBooking && in_array($booking->status, ['pending', 'reviewing']);
+        @endphp
+
         <!-- Approval / Rejection Actions for Manager / Admin -->
-        @if((Auth::user()->isAdmin() || (Auth::user()->isManager() && ($booking->manager_id === Auth::id() || $booking->streamer->manager_id === Auth::id()))) && in_array($booking->status, ['pending', 'reviewing']))
+        @if($canRejectBooking || $canApproveBooking)
             <div class="flex items-center space-x-3">
+                @if($canRejectBooking)
                 <!-- Reject Button Trigger -->
                 <button type="button" onclick="openRejectModal()" class="px-4 py-2.5 rounded-xl border border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs transition">
                     <i class="fas fa-ban mr-1"></i> Từ Chối
                 </button>
+                @endif
 
+                @if($canApproveBooking)
                 <!-- Approve Button (with Collision Lock) -->
                 <form action="{{ route('bookings.approve', $booking->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn duyệt và khóa lịch trình cho Talent này?');">
                     @csrf
@@ -33,6 +47,7 @@
                         <span>Phê Duyệt & Khóa Lịch</span>
                     </button>
                 </form>
+                @endif
             </div>
         @endif
     </div>
@@ -152,6 +167,7 @@
     </div>
 </div>
 
+@if($canRejectBooking)
 <!-- Modal Reject -->
 <div id="reject-modal" class="{{ $errors->has('reject_reason') ? '' : 'hidden' }} fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
@@ -187,4 +203,5 @@ function closeRejectModal() {
     document.getElementById('reject-modal').classList.add('hidden');
 }
 </script>
+@endif
 @endsection
