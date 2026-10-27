@@ -159,4 +159,55 @@ class AdminAndKpiTest extends TestCase
             ->assertSessionHas('success');
         $this->assertSame($manager->id, $streamer->fresh()->manager_id);
     }
+
+    public static function invalidDateProvider(): array
+    {
+        return [
+            'dd/mm/yyyy' => ['05/09/2026'],
+            'overflow day' => ['2026-02-30'],
+            'overflow month' => ['2026-13-01'],
+            'no zero padding' => ['2026-9-5'],
+            'with time' => ['2026-09-05 10:00'],
+            'free text' => ['yesterday'],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalidDateProvider')]
+    public function test_csv_import_rejects_non_strict_dates(string $date): void
+    {
+        $streamer = $this->makeStreamer();
+        $path = tempnam(sys_get_temp_dir(), 'csv');
+        file_put_contents($path, implode("\n", [
+            'streamer_id,platform,stream_date,duration_hours,avg_viewers,peak_viewers,followers_gained',
+            "{$streamer->id},youtube,\"{$date}\",3,1000,2000,10",
+            "{$streamer->id},youtube,2026-09-05,3,1000,2000,10",
+        ]));
+
+        $result = app(CsvMetricsService::class)->importCsv($path, [$streamer->id]);
+        @unlink($path);
+
+        $this->assertTrue($result['success']);
+        $this->assertSame(1, $result['imported_count']);
+        $this->assertCount(1, $result['errors']);
+        $this->assertStringContainsString("Dòng 2: Ngày '{$date}' không hợp lệ", $result['errors'][0]);
+        $this->assertSame(['2026-09-05'], StreamMetric::pluck('stream_date')->map->toDateString()->all());
+    }
+
+    public function test_csv_date_error_is_flashed_in_import_errors(): void
+    {
+        $manager = $this->makeUser('manager');
+        $streamer = $this->makeStreamer($manager);
+        $file = \Illuminate\Http\UploadedFile::fake()->createWithContent('m.csv', implode("\n", [
+            'streamer_id,platform,stream_date,duration_hours,avg_viewers,peak_viewers,followers_gained',
+            "{$streamer->id},youtube,05/09/2026,3,1000,2000,10",
+        ]));
+
+        $this->actingAs($manager)
+            ->post(route('manager.metrics.store'), ['csv_file' => $file])
+            ->assertSessionHas('success')
+            ->assertSessionMissing('error')
+            ->assertSessionHas('import_errors', fn ($e) => count($e) === 1 && str_contains($e[0], "Ngày '05/09/2026' không hợp lệ"));
+
+        $this->assertSame(0, StreamMetric::count());
+    }
 }

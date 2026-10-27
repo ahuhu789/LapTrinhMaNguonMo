@@ -153,21 +153,36 @@ class BookingCollisionService
     public function rejectBooking(Booking $booking, int $managerId, string $rejectReason): array
     {
         try {
-            DB::transaction(function () use ($booking, $managerId, $rejectReason) {
-                $booking->update([
+            $result = DB::transaction(function () use ($booking, $managerId, $rejectReason) {
+                // Đọc lại booking dưới khóa để không từ chối nhầm booking vừa được duyệt song song
+                $locked = Booking::whereKey($booking->id)->lockForUpdate()->firstOrFail();
+
+                // Chỉ booking đang chờ duyệt mới được từ chối (đã duyệt / đã từ chối / hoàn thành -> không)
+                if (!$locked->isRejectable()) {
+                    return [
+                        'success' => false,
+                        'message' => 'Không thể từ chối! Chỉ booking đang chờ duyệt mới được từ chối (trạng thái hiện tại: ' . $locked->status_label . ').',
+                    ];
+                }
+
+                $locked->update([
                     'status' => 'rejected',
                     'manager_id' => $managerId,
                     'reject_reason' => $rejectReason,
                 ]);
 
-                // Xóa lịch schedule tương ứng nếu đã tồn tại
-                Schedule::where('reference_id', $booking->id)->delete();
+                // Phòng hờ: giải phóng lịch nếu có bản ghi schedule trỏ tới booking này
+                Schedule::where('reference_id', $locked->id)->delete();
+
+                return [
+                    'success' => true,
+                    'message' => 'Đã từ chối booking và thông báo lý do đến khách hàng.',
+                ];
             });
 
-            return [
-                'success' => true,
-                'message' => 'Đã từ chối booking và thông báo lý do đến khách hàng.',
-            ];
+            $booking->refresh();
+
+            return $result;
         } catch (Exception $e) {
             report($e);
 

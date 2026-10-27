@@ -115,10 +115,9 @@ class CsvMetricsService
                     continue;
                 }
 
-                try {
-                    $dateObj = Carbon::parse($streamDate);
-                } catch (Exception $e) {
-                    $errors[] = "Dòng $rowNumber: Định dạng ngày '$streamDate' không đúng (chuẩn YYYY-MM-DD).";
+                $dateObj = $this->parseStrictDate($streamDate);
+                if ($dateObj === null) {
+                    $errors[] = "Dòng $rowNumber: Ngày '$streamDate' không hợp lệ (yêu cầu định dạng YYYY-MM-DD và là ngày có thật, ví dụ 2026-10-05).";
                     continue;
                 }
 
@@ -189,6 +188,25 @@ class CsvMetricsService
                 'errors' => [],
             ];
         }
+    }
+
+    /**
+     * Parse ngày theo đúng định dạng Y-m-d (không đoán định dạng như Carbon::parse).
+     * Từ chối ngày tràn (vd 2026-02-30 -> 2026-03-02) bằng cách format ngược và so sánh.
+     */
+    protected function parseStrictDate(string $value): ?Carbon
+    {
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return null;
+        }
+
+        try {
+            $date = Carbon::createFromFormat('!Y-m-d', $value);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return ($date !== false && $date->format('Y-m-d') === $value) ? $date : null;
     }
 
     /**

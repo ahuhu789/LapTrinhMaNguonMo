@@ -11,6 +11,9 @@ class Booking extends Model
 
     protected $table = 'bookings';
 
+    /** Trạng thái cho phép từ chối booking */
+    public const REJECTABLE_STATUSES = ['pending'];
+
     protected $fillable = [
         'client_id',
         'streamer_id',
@@ -49,6 +52,11 @@ class Booking extends Model
     public function schedule()
     {
         return $this->hasOne(Schedule::class, 'reference_id');
+    }
+
+    public function isRejectable(): bool
+    {
+        return in_array($this->status, self::REJECTABLE_STATUSES, true);
     }
 
     public function getDurationHoursAttribute(): float

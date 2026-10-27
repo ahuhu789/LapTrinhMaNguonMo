@@ -79,4 +79,56 @@ class BookingApprovalConflictTest extends TestCase
 
         $this->assertSame($admin->id, $booking->fresh()->manager_id);
     }
+
+    public static function nonRejectableStatusProvider(): array
+    {
+        return [['approved'], ['rejected'], ['completed'], ['cancelled'], ['reviewing']];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('nonRejectableStatusProvider')]
+    public function test_only_pending_bookings_can_be_rejected(string $status): void
+    {
+        $manager = User::factory()->manager()->create();
+        $booking = Booking::factory()
+            ->for(StreamerProfile::factory()->managedBy($manager), 'streamer')
+            ->create(['status' => $status, 'reject_reason' => null]);
+
+        $this->actingAs($manager)
+            ->from(route('bookings.show', $booking))
+            ->post(route('bookings.reject', $booking), ['reject_reason' => 'Đổi kế hoạch truyền thông'])
+            ->assertRedirect(route('bookings.show', $booking))
+            ->assertSessionHas('error', fn ($msg) => str_starts_with($msg, 'Không thể từ chối! Chỉ booking đang chờ duyệt'))
+            ->assertSessionMissing('success');
+
+        $fresh = $booking->fresh();
+        $this->assertSame($status, $fresh->status);
+        $this->assertNull($fresh->reject_reason);
+    }
+
+    public function test_approved_booking_keeps_its_schedule_when_reject_is_attempted(): void
+    {
+        $manager = User::factory()->manager()->create();
+        $booking = Booking::factory()->for(StreamerProfile::factory()->managedBy($manager), 'streamer')->create();
+
+        $this->actingAs($manager)->post(route('bookings.approve', $booking))->assertSessionHas('success');
+        $this->actingAs($manager)
+            ->post(route('bookings.reject', $booking), ['reject_reason' => 'Muốn hủy sau khi duyệt'])
+            ->assertSessionHas('error');
+
+        $this->assertSame('approved', $booking->fresh()->status);
+        $this->assertTrue(Schedule::where('reference_id', $booking->id)->exists());
+    }
+
+    public function test_pending_booking_can_be_rejected(): void
+    {
+        $manager = User::factory()->manager()->create();
+        $booking = Booking::factory()->for(StreamerProfile::factory()->managedBy($manager), 'streamer')->create();
+
+        $this->actingAs($manager)
+            ->post(route('bookings.reject', $booking), ['reject_reason' => 'Ngân sách chưa phù hợp'])
+            ->assertSessionHas('success');
+
+        $this->assertSame('rejected', $booking->fresh()->status);
+        $this->assertSame('Ngân sách chưa phù hợp', $booking->fresh()->reject_reason);
+    }
 }
