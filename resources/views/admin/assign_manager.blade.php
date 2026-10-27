@@ -11,6 +11,19 @@
             Mỗi Talent Streamer sẽ do một Manager trực tiếp chịu trách nhiệm duyệt hợp đồng booking và quản lý mục tiêu KPI hàng tháng.
         </p>
 
+        @php
+            // Backend (UpdateStreamerManagerRequest) reports errors under 'manager_id' without the row;
+            // the hidden _target_streamer_id is flashed back as old input to locate it.
+            $assignErrorStreamerId = $errors->has('manager_id') ? (int) old('_target_streamer_id') : null;
+            $assignErrorRowVisible = $assignErrorStreamerId && $streamers->contains('id', $assignErrorStreamerId);
+        @endphp
+        @if($errors->has('manager_id') && !$assignErrorRowVisible)
+            <div class="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center" role="alert">
+                <i class="fas fa-circle-exclamation mr-2"></i>
+                <span>Không thể phân bổ Manager: {{ $errors->first('manager_id') }}</span>
+            </div>
+        @endif
+
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
                 <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold border-b border-slate-200">
@@ -40,9 +53,11 @@
                                 @endif
                             </td>
                             <td class="py-3.5 px-4 text-right">
+                                @php $assignErrorHere = $assignErrorRowVisible && $assignErrorStreamerId === $st->id; @endphp
                                 <form action="{{ route('admin.assign.update', $st->id) }}" method="POST" class="inline-flex items-center space-x-2">
                                     @csrf
-                                    <select name="manager_id" class="text-xs border border-slate-300 rounded-xl px-3 py-1.5 focus:ring-1 focus:ring-primary-500 font-medium">
+                                    <input type="hidden" name="_target_streamer_id" value="{{ $st->id }}">
+                                    <select name="manager_id" @if($assignErrorHere) aria-invalid="true" @endif class="text-xs border {{ $assignErrorHere ? 'border-rose-400 ring-1 ring-rose-300' : 'border-slate-300' }} rounded-xl px-3 py-1.5 focus:ring-1 focus:ring-primary-500 font-medium">
                                         <option value="">-- Chưa gán --</option>
                                         @foreach($managers as $m)
                                             <option value="{{ $m->id }}" {{ $st->manager_id == $m->id ? 'selected' : '' }}>
@@ -54,6 +69,9 @@
                                         Lưu Phân Bổ
                                     </button>
                                 </form>
+                                @if($assignErrorHere)
+                                    <p class="mt-1 text-[11px] font-semibold text-rose-600" role="alert">{{ $errors->first('manager_id') }}</p>
+                                @endif
                             </td>
                         </tr>
                     @endforeach
