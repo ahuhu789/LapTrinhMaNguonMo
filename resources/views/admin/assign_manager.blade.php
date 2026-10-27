@@ -26,7 +26,7 @@
                     @foreach($streamers as $st)
                         <tr class="hover:bg-slate-50">
                             <td class="py-3.5 px-4 font-bold text-slate-900 flex items-center space-x-2">
-                                <img src="{{ $st->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100' }}" class="w-7 h-7 rounded-full object-cover">
+                                <img src="{{ $st->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100' }}" alt="" width="28" height="28" loading="lazy" decoding="async" class="w-7 h-7 rounded-full object-cover">
                                 <span>{{ $st->stage_name }}</span>
                             </td>
                             <td class="py-3.5 px-4 text-slate-600">{{ $st->category }}</td>

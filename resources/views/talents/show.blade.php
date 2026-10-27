@@ -7,13 +7,13 @@
     <!-- Header Media Kit Banner -->
     <div class="relative bg-slate-900 rounded-3xl overflow-hidden shadow-lg mb-8">
         <div class="h-64 sm:h-80 w-full overflow-hidden relative">
-            <img src="{{ $talent->banner_url ?? 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600' }}" alt="Banner" class="w-full h-full object-cover opacity-80">
+            <img src="{{ $talent->banner_url ?? 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600' }}" alt="Banner" width="1600" height="320" decoding="async" class="w-full h-full object-cover opacity-80">
             <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
         </div>
 
         <div class="relative px-6 sm:px-10 pb-8 -mt-20 flex flex-col sm:flex-row items-center sm:items-end justify-between gap-6">
             <div class="flex flex-col sm:flex-row items-center sm:items-end gap-6 text-center sm:text-left">
-                <img src="{{ $talent->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400' }}" alt="{{ $talent->stage_name }}" class="w-32 h-32 rounded-3xl border-4 border-white shadow-2xl object-cover bg-slate-800">
+                <img src="{{ $talent->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400' }}" alt="{{ $talent->stage_name }}" width="128" height="128" decoding="async" class="w-32 h-32 rounded-3xl border-4 border-white shadow-2xl object-cover bg-slate-800">
                 <div>
                     <div class="inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-bold bg-primary-600/90 text-white mb-2 shadow-sm">
                         <span>{{ $talent->category }}</span>
