@@ -1,0 +1,8 @@
+@extends('errors.layout')
+@section('title', 'Lỗi hệ thống (500)')
+@section('code', '500')
+@section('icon', 'fa-triangle-exclamation')
+@section('icon_bg', 'bg-rose-100 text-rose-600')
+@section('code_color', 'text-rose-600')
+@section('heading', 'Hệ thống đang gặp sự cố')
+@section('message', 'Đã có lỗi không mong muốn xảy ra. Vui lòng thử lại sau ít phút.')
