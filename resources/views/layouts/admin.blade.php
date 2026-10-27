@@ -6,16 +6,21 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Quản Trị MCN Platform')</title>
     
+    @include('layouts.partials.fonts')
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['"Be Vietnam Pro"', 'ui-sans-serif', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif'],
+                    },
                     colors: {
+                        // full indigo scale (views use primary-50..700)
                         primary: {
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
+                            50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8',
+                            500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81',
                         }
                     }
                 }
@@ -49,13 +54,13 @@
         <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             @if(Auth::user()->isAdmin())
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition {{ request()->routeIs('admin.dashboard') ? 'bg-primary-600 text-white' : 'hover:bg-slate-800 text-slate-300' }}">
-                    <i class="fas fa-gauge w-6"></i> Dashboard Admin
+                    <i class="fas fa-gauge w-6"></i> Tổng quan Admin
                 </a>
             @endif
 
             @if(Auth::user()->isManager() || Auth::user()->isAdmin())
                 <a href="{{ route('manager.dashboard') }}" class="flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition {{ request()->routeIs('manager.dashboard') ? 'bg-primary-600 text-white' : 'hover:bg-slate-800 text-slate-300' }}">
-                    <i class="fas fa-chart-line w-6"></i> Dashboard Manager
+                    <i class="fas fa-chart-line w-6"></i> Tổng quan Manager
                 </a>
                 <a href="{{ route('bookings.index') }}" class="flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition {{ request()->routeIs('bookings.*') ? 'bg-primary-600 text-white' : 'hover:bg-slate-800 text-slate-300' }}">
                     <i class="fas fa-calendar-check w-6"></i> Quản Lý Booking
@@ -108,16 +113,23 @@
         <!-- Scrollable Main Container -->
         <main class="flex-1 overflow-y-auto p-6 bg-slate-100">
             @if(session('success'))
-                <div role="status" class="p-4 mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center shadow-sm">
-                    <i class="fas fa-circle-check text-emerald-500 mr-3 text-lg"></i>
-                    <div>{{ session('success') }}</div>
+                <div role="status" class="p-4 mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start shadow-sm">
+                    <i class="fas fa-circle-check text-emerald-500 mr-3 text-lg leading-6 shrink-0"></i>
+                <div class="min-w-0 break-words whitespace-pre-line leading-6">{{ session('success') }}</div>
                 </div>
             @endif
 
             @if(session('error'))
-                <div role="alert" class="p-4 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-center shadow-sm">
-                    <i class="fas fa-circle-exclamation text-rose-500 mr-3 text-lg"></i>
-                    <div>{{ session('error') }}</div>
+                <div role="alert" class="p-4 mb-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start shadow-sm">
+                    <i class="fas fa-circle-exclamation text-rose-500 mr-3 text-lg leading-6 shrink-0"></i>
+                <div class="min-w-0 break-words whitespace-pre-line leading-6">{{ session('error') }}</div>
+                </div>
+            @endif
+
+            @if(session('warning'))
+                <div role="alert" class="p-4 mb-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start shadow-sm">
+                    <i class="fas fa-triangle-exclamation text-amber-500 mr-3 text-lg leading-6 shrink-0"></i>
+                <div class="min-w-0 break-words whitespace-pre-line leading-6">{{ session('warning') }}</div>
                 </div>
             @endif
 

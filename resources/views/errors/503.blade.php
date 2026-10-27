@@ -1,0 +1,8 @@
+@extends('errors.layout')
+@section('title', 'Đang bảo trì (503)')
+@section('code', '503')
+@section('icon', 'fa-screwdriver-wrench')
+@section('icon_bg', 'bg-amber-100 text-amber-600')
+@section('code_color', 'text-amber-600')
+@section('heading', 'Hệ thống đang bảo trì')
+@section('message', 'Vui lòng quay lại sau ít phút.')

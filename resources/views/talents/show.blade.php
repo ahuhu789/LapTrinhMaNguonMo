@@ -30,7 +30,7 @@
 
             <div class="bg-white/10 backdrop-blur-md border border-white/20 p-5 rounded-2xl text-center sm:text-right w-full sm:w-auto">
                 <span class="text-xs text-slate-300 uppercase font-semibold block">Mức giá Booking chuẩn</span>
-                <span class="text-2xl sm:text-3xl font-black text-emerald-400 block my-1">{{ $talent->formatted_rate }}</span>
+                <span class="text-2xl sm:text-3xl font-black text-emerald-400 block my-1"><x-money :amount="$talent->rate_per_hour" suffix="/giờ" /></span>
                 <a href="{{ route('bookings.create', ['streamer_id' => $talent->id]) }}" class="mt-2 inline-block w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white font-bold text-sm shadow-lg shadow-primary-600/30 transition">
                     <i class="fas fa-calendar-check mr-1.5"></i> Đặt Lịch Booking Ngay
                 </a>
@@ -46,7 +46,7 @@
             </div>
             <div>
                 <span class="text-xs font-semibold text-slate-400 uppercase">Avg Viewers</span>
-                <div class="text-2xl font-black text-slate-900">{{ number_format((float) ($talent->avg_viewers_calc ?? $talent->avg_viewers ?? 0)) }}</div>
+                <div class="text-2xl font-black text-slate-900">{{ number_format((float) ($talent->avg_viewers_calc ?? $talent->avg_viewers ?? 0), 0, ',', '.') }}</div>
                 <span class="text-[11px] text-emerald-600 font-semibold"><i class="fas fa-arrow-trend-up mr-1"></i> Ổn định</span>
             </div>
         </div>
@@ -57,7 +57,7 @@
             </div>
             <div>
                 <span class="text-xs font-semibold text-slate-400 uppercase">Peak Viewers</span>
-                <div class="text-2xl font-black text-slate-900">{{ number_format((float) ($talent->peak_viewers_calc ?? $talent->peak_viewers ?? 0)) }}</div>
+                <div class="text-2xl font-black text-slate-900">{{ number_format((float) ($talent->peak_viewers_calc ?? $talent->peak_viewers ?? 0), 0, ',', '.') }}</div>
                 <span class="text-[11px] text-indigo-600 font-semibold">Kỷ lục cao nhất</span>
             </div>
         </div>
@@ -68,7 +68,7 @@
             </div>
             <div>
                 <span class="text-xs font-semibold text-slate-400 uppercase">Giờ Live Tháng Này</span>
-                <div class="text-2xl font-black text-slate-900">{{ number_format($talent->monthly_stream_hours, 1) }}h</div>
+                <div class="text-2xl font-black text-slate-900">{{ number_format((float) $talent->monthly_stream_hours, 1, ',', '.') }}h</div>
                 <span class="text-[11px] text-emerald-600 font-semibold">Chỉ số cam kết</span>
             </div>
         </div>
@@ -79,7 +79,7 @@
             </div>
             <div>
                 <span class="text-xs font-semibold text-slate-400 uppercase">Giá Booking / Giờ</span>
-                <div class="text-xl font-black text-slate-900">{{ number_format($talent->rate_per_hour, 0, ',', '.') }} đ</div>
+                <div class="text-xl font-black text-slate-900"><x-money :amount="$talent->rate_per_hour" /></div>
                 <span class="text-[11px] text-slate-500">Chưa bao gồm VAT</span>
             </div>
         </div>
@@ -126,9 +126,9 @@
                                             <span>{{ $pb->platform }}</span>
                                         </td>
                                         <td class="py-3 px-4">{{ $pb->sessions }} buổi</td>
-                                        <td class="py-3 px-4 font-medium">{{ number_format($pb->total_hours, 1) }} giờ</td>
-                                        <td class="py-3 px-4 font-bold text-slate-800">{{ number_format((float) ($pb->avg_viewers ?? 0)) }}</td>
-                                        <td class="py-3 px-4 font-bold text-indigo-600">{{ number_format((float) ($pb->peak_viewers ?? 0)) }}</td>
+                                        <td class="py-3 px-4 font-medium">{{ number_format((float) $pb->total_hours, 1, ',', '.') }} giờ</td>
+                                        <td class="py-3 px-4 font-bold text-slate-800">{{ number_format((float) ($pb->avg_viewers ?? 0), 0, ',', '.') }}</td>
+                                        <td class="py-3 px-4 font-bold text-indigo-600">{{ number_format((float) ($pb->peak_viewers ?? 0), 0, ',', '.') }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -175,7 +175,7 @@
                                 </div>
                                 <div class="text-slate-500 flex items-center space-x-2">
                                     <i class="far fa-clock"></i>
-                                    <span>{{ $sch->start_time->format('H:i d/m') }} - {{ $sch->end_time->format('H:i d/m/Y') }}</span>
+                                    <x-datetime-range :start="$sch->start_time" :end="$sch->end_time" />
                                 </div>
                             </div>
                         @endforeach

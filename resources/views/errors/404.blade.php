@@ -1,0 +1,6 @@
+@extends('errors.layout')
+@section('title', 'Không tìm thấy trang (404)')
+@section('code', '404')
+@section('icon', 'fa-magnifying-glass')
+@section('heading', 'Không tìm thấy trang')
+@section('message', 'Trang hoặc dữ liệu bạn yêu cầu không tồn tại hoặc đã bị xóa.')
