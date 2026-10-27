@@ -136,4 +136,27 @@ class AdminAndKpiTest extends TestCase
         $this->assertFalse($managed->first()->relationLoaded('metrics'));
         $this->assertTrue($managed->first()->relationLoaded('currentKpi'));
     }
+
+    public function test_admin_forms_accept_extra_hidden_target_fields(): void
+    {
+        $admin = $this->makeUser('admin');
+        $client = $this->makeUser('client');
+        $manager = $this->makeUser('manager');
+        $streamer = $this->makeStreamer();
+
+        $this->actingAs($admin)
+            ->post(route('admin.users.role', $client), ['role' => 'manager', '_target_user_id' => $client->id])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success');
+        $this->assertSame('manager', $client->fresh()->role);
+
+        $this->actingAs($admin)
+            ->post(route('admin.assign.update', $streamer), [
+                'manager_id' => $manager->id,
+                '_target_streamer_id' => $streamer->id,
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success');
+        $this->assertSame($manager->id, $streamer->fresh()->manager_id);
+    }
 }
