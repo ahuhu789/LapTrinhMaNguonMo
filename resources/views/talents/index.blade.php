@@ -104,11 +104,11 @@
                         <div class="bg-slate-50 rounded-xl p-2.5 grid grid-cols-2 gap-2 text-center text-xs mb-3 border border-slate-100">
                             <div>
                                 <span class="text-slate-400 block text-[10px]">Avg Viewers</span>
-                                <span class="font-bold text-slate-800">{{ number_format($talent->avg_viewers) }}</span>
+                                <span class="font-bold text-slate-800">{{ number_format((float) ($talent->avg_viewers_calc ?? $talent->avg_viewers ?? 0)) }}</span>
                             </div>
                             <div>
                                 <span class="text-slate-400 block text-[10px]">Peak Viewers</span>
-                                <span class="font-bold text-indigo-600">{{ number_format($talent->peak_viewers) }}</span>
+                                <span class="font-bold text-indigo-600">{{ number_format((float) ($talent->peak_viewers_calc ?? $talent->peak_viewers ?? 0)) }}</span>
                             </div>
                         </div>
 

@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ${talents.map(t => {
                     const avatar = safeImageUrl(t.avatar_url);
                     const formattedRate = new Intl.NumberFormat('vi-VN').format(t.rate_per_hour) + ' đ/h';
-                    const formattedViews = new Intl.NumberFormat('vi-VN').format(t.avg_viewers);
+                    const formattedViews = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Number(t.avg_viewers_calc ?? t.avg_viewers ?? 0) || 0);
                     const bioSnippet = t.bio ? escapeHtml(t.bio) : '';
 
                     return `
