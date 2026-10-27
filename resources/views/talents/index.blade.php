@@ -65,7 +65,15 @@
     </div>
 
     <!-- Talent Cards Grid -->
-    @if($talents->isEmpty())
+    @if($talents->isEmpty() && $talents instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator && $talents->total() > 0)
+        {{-- ?page= beyond the last page: results exist, just not on this page --}}
+        <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+            <i class="fas fa-file-circle-question text-4xl text-slate-300 mb-3"></i>
+            <h3 class="text-lg font-bold text-slate-700">Trang {{ $talents->currentPage() }} không có dữ liệu</h3>
+            <p class="text-sm text-slate-500 mt-1">Danh sách hiện chỉ có {{ $talents->lastPage() }} trang ({{ $talents->total() }} Talent).</p>
+            <a href="{{ $talents->withQueryString()->url(1) }}" class="inline-block mt-4 text-xs font-bold text-primary-600 hover:underline">Về trang đầu</a>
+        </div>
+    @elseif($talents->isEmpty())
         <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
             <i class="fas fa-user-slash text-4xl text-slate-300 mb-3"></i>
             <h3 class="text-lg font-bold text-slate-700">Không tìm thấy Talent phù hợp</h3>
