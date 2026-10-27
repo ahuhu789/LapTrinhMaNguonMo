@@ -103,4 +103,15 @@ class DatabaseSeederTest extends TestCase
             StreamMetric::select('streamer_id', 'platform', 'stream_date')->distinct()->get()->count()
         );
     }
+
+    public function test_seeded_active_bookings_respect_booking_rules(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $service = app(\App\Services\BookingCollisionService::class);
+
+        Booking::whereIn('status', ['pending', 'reviewing'])->get()->each(function (Booking $b) use ($service) {
+            $check = $service->checkCollision($b->streamer_id, $b->start_time, $b->end_time, $b->id, $b->client_id);
+            $this->assertFalse($check['has_conflict'], "Booking #{$b->id}: {$check['message']}");
+        });
+    }
 }
