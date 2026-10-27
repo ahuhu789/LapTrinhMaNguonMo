@@ -54,7 +54,7 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Doanh thu mục tiêu (VNĐ)</label>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Doanh thu mục tiêu (₫)</label>
                     <input type="number" name="target_revenue" value="20000000" min="0" step="1000000" required
                         class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-primary-500 font-bold">
                 </div>
@@ -112,8 +112,8 @@
                                     </div>
                                 </td>
                                 <td class="py-3 px-4">
-                                    <span class="font-bold text-emerald-600">{{ $kpi->formatted_achieved_revenue }}</span>
-                                    <span class="text-[10px] text-slate-400 block">Mục tiêu: {{ $kpi->formatted_target_revenue }}</span>
+                                    <span class="font-bold text-emerald-600"><x-money :amount="$kpi->achieved_revenue" /></span>
+                                    <span class="text-[10px] text-slate-400 block">Mục tiêu: <x-money :amount="$kpi->target_revenue" /></span>
                                 </td>
                                 <td class="py-3 px-4">
                                     <div class="flex items-center space-x-2">

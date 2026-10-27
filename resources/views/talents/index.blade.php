@@ -96,7 +96,7 @@
                             <img src="{{ $talent->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200' }}" alt="{{ $talent->stage_name }}" width="64" height="64" loading="lazy" decoding="async" class="w-16 h-16 rounded-2xl border-4 border-white shadow-md object-cover">
                             <div class="text-right">
                                 <span class="text-[10px] text-slate-400 block font-medium">Giá tham khảo</span>
-                                <span class="text-sm font-extrabold text-primary-600">{{ $talent->formatted_rate }}</span>
+                                <span class="text-sm font-extrabold text-primary-600"><x-money :amount="$talent->rate_per_hour" suffix="/giờ" /></span>
                             </div>
                         </div>
 
@@ -112,11 +112,11 @@
                         <div class="bg-slate-50 rounded-xl p-2.5 grid grid-cols-2 gap-2 text-center text-xs mb-3 border border-slate-100">
                             <div>
                                 <span class="text-slate-400 block text-[10px]">Avg Viewers</span>
-                                <span class="font-bold text-slate-800">{{ number_format((float) ($talent->avg_viewers_calc ?? $talent->avg_viewers ?? 0)) }}</span>
+                                <span class="font-bold text-slate-800">{{ number_format((float) ($talent->avg_viewers_calc ?? $talent->avg_viewers ?? 0), 0, ',', '.') }}</span>
                             </div>
                             <div>
                                 <span class="text-slate-400 block text-[10px]">Peak Viewers</span>
-                                <span class="font-bold text-indigo-600">{{ number_format((float) ($talent->peak_viewers_calc ?? $talent->peak_viewers ?? 0)) }}</span>
+                                <span class="font-bold text-indigo-600">{{ number_format((float) ($talent->peak_viewers_calc ?? $talent->peak_viewers ?? 0), 0, ',', '.') }}</span>
                             </div>
                         </div>
 

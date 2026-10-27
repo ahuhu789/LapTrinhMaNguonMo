@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
                 ${talents.map(t => {
                     const avatar = safeImageUrl(t.avatar_url);
-                    const formattedRate = new Intl.NumberFormat('vi-VN').format(t.rate_per_hour) + ' đ/h';
+                    const formattedRate = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Number(t.rate_per_hour) || 0) + '\u00a0₫/giờ';
                     const formattedViews = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Number(t.avg_viewers_calc ?? t.avg_viewers ?? 0) || 0);
                     const bioSnippet = t.bio ? escapeHtml(t.bio) : '';
 

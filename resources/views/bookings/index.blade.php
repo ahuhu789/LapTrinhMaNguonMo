@@ -60,7 +60,7 @@
                                     <div class="text-slate-400">đến <x-datetime :value="$b->end_time" /> ({{ $b->duration_hours }}h)</div>
                                 </td>
                                 <td class="py-3.5 px-4 font-extrabold text-slate-900">
-                                    {{ $b->formatted_budget }}
+                                    <x-money :amount="$b->budget" />
                                 </td>
                                 <td class="py-3.5 px-4">
                                     <span class="px-2.5 py-1 rounded-full text-xs font-bold border {{ $b->status_badge_class }}">

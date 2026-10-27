@@ -28,7 +28,7 @@
                         <option value="{{ $st->id }}" 
                             data-rate="{{ $st->rate_per_hour }}"
                             {{ (old('streamer_id', $selectedStreamer->id ?? '') == $st->id) ? 'selected' : '' }}>
-                            {{ $st->stage_name }} ({{ $st->category }}) — {{ $st->formatted_rate }}
+                            {{ $st->stage_name }} ({{ $st->category }}) — {{ number_format((float) $st->rate_per_hour, 0, ',', '.') }} ₫/giờ
                         </option>
                     @endforeach
                 </select>
@@ -61,13 +61,13 @@
             <!-- Budget -->
             <div>
                 <label for="budget" class="block text-sm font-bold text-slate-700 mb-2">
-                    4. Tổng Ngân Sách Dự Kiến (VNĐ) <span class="text-rose-500">*</span>
+                    4. Tổng Ngân Sách Dự Kiến (₫) <span class="text-rose-500">*</span>
                 </label>
                 <div class="relative">
                     <input type="number" name="budget" id="budget" value="{{ old('budget', '3000000') }}" min="100000" step="50000" required
                         placeholder="VD: 3000000"
                         class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary-500 text-sm font-bold text-slate-800">
-                    <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-xs font-bold text-slate-400">VNĐ</span>
+                    <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-xs font-bold text-slate-400">₫</span>
                 </div>
                 {{-- mcn.commission_rate is a percentage (e.g. 15.00 = 15%); default matches backend config/mcn.php --}}
                 <p class="text-xs text-slate-400 mt-1">Đã bao gồm phí hoa hồng quản lý agency {{ rtrim(rtrim(number_format((float) config('mcn.commission_rate', 15), 2, ',', '.'), '0'), ',') }}%.</p>

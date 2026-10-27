@@ -122,9 +122,9 @@
                                 </td>
                                 <td class="py-3 px-4"><x-datetime :value="$m->stream_date" format="d/m/Y" /></td>
                                 <td class="py-3 px-4 font-semibold text-slate-700">{{ $m->duration_hours }} giờ</td>
-                                <td class="py-3 px-4 font-bold text-slate-800">{{ number_format($m->avg_viewers) }}</td>
-                                <td class="py-3 px-4 font-bold text-indigo-600">{{ number_format($m->peak_viewers) }}</td>
-                                <td class="py-3 px-4 text-emerald-600 font-semibold">+{{ number_format($m->followers_gained) }}</td>
+                                <td class="py-3 px-4 font-bold text-slate-800">{{ number_format($m->avg_viewers, 0, ',', '.') }}</td>
+                                <td class="py-3 px-4 font-bold text-indigo-600">{{ number_format($m->peak_viewers, 0, ',', '.') }}</td>
+                                <td class="py-3 px-4 text-emerald-600 font-semibold">+{{ number_format($m->followers_gained, 0, ',', '.') }}</td>
                                 <td class="py-3 px-4">
                                     <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
                                         {{ $m->source_type }}

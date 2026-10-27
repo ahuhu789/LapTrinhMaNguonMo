@@ -109,7 +109,7 @@
                 <div class="flex-1">
                     <span class="text-xs text-slate-400 block">Talent Streamer</span>
                     <div class="font-bold text-slate-900 text-sm">{{ $booking->streamer->stage_name }}</div>
-                    <span class="text-xs text-slate-500">{{ $booking->streamer->category }} • Giá: {{ $booking->streamer->formatted_rate }}</span>
+                    <span class="text-xs text-slate-500">{{ $booking->streamer->category }} • Giá: <x-money :amount="$booking->streamer->rate_per_hour" suffix="/giờ" /></span>
                 </div>
                 <a href="{{ route('talents.show', $booking->streamer->id) }}" target="_blank" class="text-xs font-semibold text-primary-600 hover:underline">
                     Media Kit
@@ -144,15 +144,15 @@
             <div class="p-4 rounded-xl bg-slate-900 text-white space-y-2 text-xs">
                 <div class="flex justify-between">
                     <span class="text-slate-300">Tổng ngân sách nhãn hàng chi trả:</span>
-                    <span class="font-black text-emerald-400 text-sm">{{ $booking->formatted_budget }}</span>
+                    <span class="font-black text-emerald-400 text-sm"><x-money :amount="$booking->budget" /></span>
                 </div>
                 <div class="flex justify-between text-slate-400">
                     <span>Hoa hồng Agency ({{ rtrim(rtrim(number_format((float) ($booking->commission_rate ?? config('mcn.commission_rate', 15)), 2, ',', '.'), '0'), ',') }}%):</span>
-                    <span>- {{ number_format($booking->agency_commission, 0, ',', '.') }} đ</span>
+                    <span><x-money :amount="$booking->agency_commission" sign="- " /></span>
                 </div>
                 <div class="flex justify-between pt-2 border-t border-slate-800 font-bold text-slate-200">
                     <span>Thù lao thực nhận của Streamer:</span>
-                    <span class="text-amber-300 font-extrabold">{{ number_format($booking->streamer_net_income, 0, ',', '.') }} đ</span>
+                    <span class="text-amber-300 font-extrabold"><x-money :amount="$booking->streamer_net_income" /></span>
                 </div>
             </div>
         </div>

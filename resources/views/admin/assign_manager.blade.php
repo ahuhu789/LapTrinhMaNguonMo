@@ -43,7 +43,7 @@
                                 <span>{{ $st->stage_name }}</span>
                             </td>
                             <td class="py-3.5 px-4 text-slate-600">{{ $st->category }}</td>
-                            <td class="py-3.5 px-4 font-semibold text-slate-800">{{ $st->formatted_rate }}</td>
+                            <td class="py-3.5 px-4 font-semibold text-slate-800"><x-money :amount="$st->rate_per_hour" suffix="/giờ" /></td>
                             <td class="py-3.5 px-4">
                                 @if($st->manager)
                                     <span class="font-bold text-slate-800">{{ $st->manager->name }}</span>

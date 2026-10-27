@@ -65,7 +65,7 @@
                 <div class="p-4 rounded-xl bg-slate-50 border border-slate-100">
                     <div class="flex justify-between text-xs font-bold mb-2">
                         <span class="text-slate-600">Doanh thu Booking:</span>
-                        <span class="text-emerald-600">{{ $currentKpi->formatted_achieved_revenue }} / {{ $currentKpi->formatted_target_revenue }}</span>
+                        <span class="text-emerald-600"><x-money :amount="$currentKpi->achieved_revenue" /> / <x-money :amount="$currentKpi->target_revenue" /></span>
                     </div>
                     <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
                         <div class="bg-indigo-500 h-3 rounded-full transition-all duration-500" style="width: {{ $currentKpi->revenue_progress_percentage }}%"></div>
@@ -99,7 +99,7 @@
                         <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition text-xs">
                             <div class="flex justify-between items-start mb-1">
                                 <span class="font-bold text-slate-900">{{ $ub->client->name }}</span>
-                                <span class="font-black text-emerald-600">{{ number_format($ub->streamer_net_income, 0, ',', '.') }} đ</span>
+                                <span class="font-black text-emerald-600"><x-money :amount="$ub->streamer_net_income" /></span>
                             </div>
                             <p class="text-slate-500 line-clamp-1 mb-2">{{ $ub->job_description }}</p>
                             <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-100 pt-2">
