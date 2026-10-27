@@ -104,6 +104,39 @@ document.addEventListener('DOMContentLoaded', function () {
     const alertIcon = document.getElementById('collision-icon');
     const alertText = document.getElementById('collision-text');
 
+    // Authenticated web route (auth + CSRF). Fallback URL keeps the page rendering
+    // on branches where the named route is not registered yet.
+    const collisionUrl = {{ Js::from(Route::has('bookings.check-collision') ? route('bookings.check-collision') : url('/bookings/check-collision')) }};
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    const STYLE_CLASSES = ['bg-rose-50', 'text-rose-800', 'border-rose-200', 'bg-emerald-50', 'text-emerald-800', 'border-emerald-200', 'bg-amber-50', 'text-amber-800', 'border-amber-200'];
+    const STYLES = {
+        conflict: { box: ['bg-rose-50', 'text-rose-800', 'border-rose-200'], icon: 'fas fa-triangle-exclamation mr-2 text-rose-600' },
+        ok:       { box: ['bg-emerald-50', 'text-emerald-800', 'border-emerald-200'], icon: 'fas fa-circle-check mr-2 text-emerald-600' },
+        warning:  { box: ['bg-amber-50', 'text-amber-800', 'border-amber-200'], icon: 'fas fa-circle-info mr-2 text-amber-600' },
+    };
+
+    function showAlert(type, message) {
+        const style = STYLES[type] || STYLES.warning;
+        alertBox.classList.remove('hidden', 'border', ...STYLE_CLASSES);
+        alertBox.classList.add('border', ...style.box);
+        alertIcon.className = style.icon;
+        alertText.textContent = message; // textContent: never interpret server text as HTML
+    }
+
+    function firstValidationMessage(data) {
+        if (data && data.errors && typeof data.errors === 'object') {
+            for (const key of Object.keys(data.errors)) {
+                const msgs = data.errors[key];
+                if (Array.isArray(msgs) && msgs.length) return String(msgs[0]);
+                if (typeof msgs === 'string' && msgs) return msgs;
+            }
+        }
+        return '';
+    }
+
+    let requestSeq = 0;
+
     async function checkLiveCollision() {
         const streamerId = streamerSelect.value;
         const startTime = startInput.value;
@@ -114,31 +147,58 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        const seq = ++requestSeq; // ignore out-of-order responses
+
+        let res;
         try {
-            const res = await fetch('/api/check-collision', {
+            res = await fetch(collisionUrl, {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
                 body: JSON.stringify({ streamer_id: streamerId, start_time: startTime, end_time: endTime })
             });
-            const data = await res.json();
-
-            alertBox.classList.remove('hidden', 'bg-rose-50', 'text-rose-800', 'border-rose-200', 'bg-emerald-50', 'text-emerald-800', 'border-emerald-200', 'border');
-            alertBox.classList.add('border');
-
-            if (data.has_conflict) {
-                alertBox.classList.add('bg-rose-50', 'text-rose-800', 'border-rose-200');
-                alertIcon.className = 'fas fa-triangle-exclamation mr-2 text-rose-600';
-                alertText.innerText = 'Cảnh báo xung đột: ' + data.message;
-            } else {
-                alertBox.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-200');
-                alertIcon.className = 'fas fa-circle-check mr-2 text-emerald-600';
-                alertText.innerText = 'Khung giờ hoàn toàn khả dụng! Streamer đang trống lịch.';
-            }
         } catch (e) {
+            if (seq !== requestSeq) return;
             console.error(e);
+            showAlert('warning', 'Không thể kiểm tra lịch trống lúc này (lỗi kết nối). Bạn vẫn có thể gửi yêu cầu, hệ thống sẽ kiểm tra lại khi lưu.');
+            return;
+        }
+
+        let data = null;
+        try { data = await res.json(); } catch (e) { data = null; }
+        if (seq !== requestSeq) return;
+
+        if (res.ok) {
+            if (data && data.has_conflict === true) {
+                showAlert('conflict', 'Cảnh báo xung đột: Streamer đã có lịch trong khung giờ này. Vui lòng chọn thời gian khác.');
+            } else if (data && data.has_conflict === false) {
+                showAlert('ok', 'Khung giờ hoàn toàn khả dụng! Streamer đang trống lịch.');
+            } else {
+                showAlert('warning', 'Không đọc được kết quả kiểm tra lịch. Vui lòng thử lại.');
+            }
+            return;
+        }
+
+        switch (res.status) {
+            case 422:
+                showAlert('warning', firstValidationMessage(data) || 'Thông tin chưa hợp lệ. Vui lòng kiểm tra lại Streamer và thời gian bắt đầu/kết thúc.');
+                break;
+            case 401:
+                showAlert('warning', 'Bạn cần đăng nhập để kiểm tra lịch trống. Vui lòng đăng nhập lại.');
+                break;
+            case 419:
+                showAlert('warning', 'Phiên làm việc đã hết hạn. Vui lòng tải lại trang (F5) rồi thử lại.');
+                break;
+            case 429:
+                showAlert('warning', 'Bạn thao tác quá nhanh. Vui lòng đợi một lát rồi thử lại.');
+                break;
+            default:
+                showAlert('warning', 'Không thể kiểm tra lịch trống lúc này. Vui lòng thử lại sau.');
         }
     }
 
