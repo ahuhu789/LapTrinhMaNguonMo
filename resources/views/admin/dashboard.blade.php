@@ -83,9 +83,7 @@
                                 <td class="py-3 px-4 font-bold text-slate-900">{{ $rb->streamer->stage_name }}</td>
                                 <td class="py-3 px-4 font-extrabold text-slate-800"><x-money :amount="$rb->budget" /></td>
                                 <td class="py-3 px-4">
-                                    <span class="px-2 py-0.5 rounded-full font-bold border text-[10px] {{ $rb->status_badge_class }}">
-                                        {{ $rb->status_label }}
-                                    </span>
+                                    <x-booking-status :status="$rb->status" size="sm" />
                                 </td>
                                 <td class="py-3 px-4 text-right">
                                     <a href="{{ route('bookings.show', $rb->id) }}" class="text-primary-600 hover:underline font-bold">

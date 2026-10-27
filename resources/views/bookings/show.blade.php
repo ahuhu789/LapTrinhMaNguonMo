@@ -10,9 +10,7 @@
         <div>
             <div class="flex items-center space-x-3">
                 <h2 class="text-2xl font-black text-slate-900">Hợp Đồng Booking #{{ $booking->id }}</h2>
-                <span class="px-3 py-1 rounded-full text-xs font-bold border {{ $booking->status_badge_class }}">
-                    {{ $booking->status_label }}
-                </span>
+                <x-booking-status :status="$booking->status" size="lg" />
             </div>
             <p class="text-xs text-slate-400 mt-1">Khởi tạo lúc: <x-datetime :value="$booking->created_at" /></p>
         </div>
@@ -77,11 +75,19 @@
 
     <!-- Rejection Reason if Rejected -->
     @if($booking->status === 'rejected')
-        <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 mb-6 text-rose-900">
+        @php
+            // Backend may rename the column (rejection_reason); support both, null-safe.
+            $rejectReason = trim((string) ($booking->rejection_reason ?? $booking->reject_reason ?? ''));
+        @endphp
+        <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 mb-6 text-rose-900" role="alert">
             <h4 class="font-bold text-sm text-rose-800 flex items-center mb-1">
-                <i class="fas fa-circle-xmark mr-2 text-rose-600"></i> Lý do từ chối từ Manager:
+                <i class="fas fa-circle-xmark mr-2 text-rose-600"></i> Booking đã bị từ chối
             </h4>
-            <p class="text-xs text-rose-700 pl-6">{{ $booking->reject_reason }}</p>
+            @if($rejectReason !== '')
+                <p class="text-xs text-rose-700 pl-6"><span class="font-semibold">Lý do:</span> {{ $rejectReason }}</p>
+            @else
+                <p class="text-xs text-rose-700 pl-6">Không có lý do cụ thể được ghi nhận.</p>
+            @endif
         </div>
     @endif
 

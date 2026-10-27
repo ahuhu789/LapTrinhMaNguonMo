@@ -104,7 +104,7 @@
                             <p class="text-slate-500 line-clamp-1 mb-2">{{ $ub->job_description }}</p>
                             <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-100 pt-2">
                                 <span><i class="far fa-clock mr-1"></i> <x-datetime-range :start="$ub->start_time" :end="$ub->end_time" /></span>
-                                <span class="px-2 py-0.5 rounded font-bold {{ $ub->status_badge_class }}">{{ $ub->status_label }}</span>
+                                <x-booking-status :status="$ub->status" size="sm" />
                             </div>
                         </div>
                     @endforeach

@@ -63,9 +63,7 @@
                                     <x-money :amount="$b->budget" />
                                 </td>
                                 <td class="py-3.5 px-4">
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold border {{ $b->status_badge_class }}">
-                                        {{ $b->status_label }}
-                                    </span>
+                                    <x-booking-status :status="$b->status" />
                                 </td>
                                 <td class="py-3.5 px-4 text-right space-x-2">
                                     <a href="{{ route('bookings.show', $b->id) }}" class="inline-block px-3 py-1.5 rounded-lg border border-slate-300 hover:border-primary-500 hover:text-primary-600 font-semibold text-xs transition">

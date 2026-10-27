@@ -106,6 +106,13 @@
                 </div>
             @endif
 
+            @if(session('warning'))
+                <div role="alert" class="p-4 mb-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center shadow-sm">
+                    <i class="fas fa-triangle-exclamation text-amber-500 mr-3 text-lg"></i>
+                    <div>{{ session('warning') }}</div>
+                </div>
+            @endif
+
             @if($errors->any())
                 <div role="alert" class="p-4 mb-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 shadow-sm">
                     <div class="font-semibold flex items-center mb-1">
