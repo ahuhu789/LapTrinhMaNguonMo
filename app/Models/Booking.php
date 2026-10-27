@@ -86,11 +86,6 @@ class Booking extends Model
         return 0;
     }
 
-    public function getFormattedBudgetAttribute(): string
-    {
-        return number_format((float) $this->budget, 0, ',', '.') . ' đ';
-    }
-
     public function getAgencyCommissionAttribute(): float
     {
         return round((float) $this->budget * ((float) $this->commission_rate / 100), 2);
