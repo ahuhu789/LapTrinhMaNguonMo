@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (res.ok) {
             if (data && data.has_conflict === true) {
-                showAlert('conflict', 'Cảnh báo xung đột: Streamer đã có lịch trong khung giờ này. Vui lòng chọn thời gian khác.');
+                showAlert('conflict', 'Khung giờ này bị trùng với lịch của talent hoặc booking khác của bạn. Vui lòng chọn thời gian khác.');
             } else if (data && data.has_conflict === false) {
                 showAlert('ok', 'Khung giờ hoàn toàn khả dụng! Streamer đang trống lịch.');
             } else {
@@ -203,9 +203,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    startInput.addEventListener('change', checkLiveCollision);
-    endInput.addEventListener('change', checkLiveCollision);
-    streamerSelect.addEventListener('change', checkLiveCollision);
+    // Debounced auto-check (~400ms) while the user edits streamer / start / end.
+    let collisionTimer = null;
+    function scheduleCollisionCheck() {
+        clearTimeout(collisionTimer);
+        collisionTimer = setTimeout(checkLiveCollision, 400);
+    }
+    [streamerSelect, startInput, endInput].forEach(function (el) {
+        el.addEventListener('input', scheduleCollisionCheck);
+        el.addEventListener('change', scheduleCollisionCheck);
+    });
+    // Prefilled form (e.g. ?streamer_id=…, or old() input after a failed submit)
+    if (streamerSelect.value && startInput.value && endInput.value) scheduleCollisionCheck();
 });
 </script>
 @endsection
