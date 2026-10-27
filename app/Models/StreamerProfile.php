@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 
@@ -26,6 +27,9 @@ class StreamerProfile extends Model
 
     protected $casts = [
         'rate_per_hour' => 'decimal:2',
+        // Cột tổng hợp sinh bởi scope withViewerStats() (withAvg/withMax)
+        'avg_viewers_calc' => 'float',
+        'peak_viewers_calc' => 'integer',
     ];
 
     public function user()
@@ -68,20 +72,49 @@ class StreamerProfile extends Model
     }
 
     /**
-     * Tính trung bình số người xem gần đây từ bảng stream_metrics
+     * Nạp sẵn chỉ số người xem bằng subquery SQL (tránh N+1):
+     *  - avg_viewers_calc  = AVG(stream_metrics.avg_viewers)
+     *  - peak_viewers_calc = MAX(stream_metrics.peak_viewers)
+     * Giá trị là NULL nếu streamer chưa có metrics.
+     */
+    public function scopeWithViewerStats(Builder $query): Builder
+    {
+        return $query
+            ->withAvg('metrics as avg_viewers_calc', 'avg_viewers')
+            ->withMax('metrics as peak_viewers_calc', 'peak_viewers');
+    }
+
+    /**
+     * Trung bình số người xem. Ưu tiên giá trị đã nạp bởi withViewerStats(),
+     * sau đó tới quan hệ metrics đã eager-load; chỉ query khi không có sẵn.
      */
     public function getAvgViewersAttribute(): int
     {
-        $avg = $this->metrics()->avg('avg_viewers');
+        if (array_key_exists('avg_viewers_calc', $this->attributes)) {
+            $avg = $this->avg_viewers_calc;
+        } elseif ($this->relationLoaded('metrics')) {
+            $avg = $this->metrics->avg('avg_viewers');
+        } else {
+            $avg = $this->metrics()->avg('avg_viewers');
+        }
+
         return (int) round($avg ?? 0);
     }
 
     /**
-     * Tính kỷ lục peak viewer
+     * Kỷ lục peak viewer (cùng thứ tự ưu tiên như avg_viewers).
      */
     public function getPeakViewersAttribute(): int
     {
-        return (int) ($this->metrics()->max('peak_viewers') ?? 0);
+        if (array_key_exists('peak_viewers_calc', $this->attributes)) {
+            $peak = $this->peak_viewers_calc;
+        } elseif ($this->relationLoaded('metrics')) {
+            $peak = $this->metrics->max('peak_viewers');
+        } else {
+            $peak = $this->metrics()->max('peak_viewers');
+        }
+
+        return (int) ($peak ?? 0);
     }
 
     /**

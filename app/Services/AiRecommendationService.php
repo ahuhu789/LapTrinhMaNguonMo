@@ -18,7 +18,7 @@ class AiRecommendationService
     {
         // 1. Data Context Injection: Truy vấn danh sách Streamer hoạt động trong CSDL
         $talents = StreamerProfile::where('status', 'active')
-            ->with(['metrics'])
+            ->withViewerStats()
             ->get()
             ->map(function ($t) {
                 return [
@@ -26,8 +26,8 @@ class AiRecommendationService
                     'stage_name' => $t->stage_name,
                     'category' => $t->category,
                     'rate_per_hour' => (float) $t->rate_per_hour,
-                    'avg_viewers' => $t->avg_viewers,
-                    'peak_viewers' => $t->peak_viewers,
+                    'avg_viewers' => (int) round($t->avg_viewers_calc ?? 0),
+                    'peak_viewers' => (int) ($t->peak_viewers_calc ?? 0),
                     'bio' => $t->bio,
                     'avatar_url' => $t->avatar_url,
                     'profile_url' => url('/talents/' . $t->id),

@@ -11,6 +11,7 @@ use App\Models\Kpi;
 use App\Models\StreamMetric;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class AdminController extends Controller
@@ -30,9 +31,8 @@ class AdminController extends Controller
             'total_bookings' => Booking::count(),
             'pending_bookings' => Booking::where('status', 'pending')->count(),
             'total_revenue' => Booking::whereIn('status', ['approved', 'completed'])->sum('budget'),
-            'total_commission' => Booking::whereIn('status', ['approved', 'completed'])
-                ->get()
-                ->sum(fn($b) => $b->agency_commission),
+            'total_commission' => round((float) Booking::whereIn('status', ['approved', 'completed'])
+                ->sum(DB::raw('budget * commission_rate / 100')), 2),
         ];
 
         $recentBookings = Booking::with(['client', 'streamer', 'manager'])
