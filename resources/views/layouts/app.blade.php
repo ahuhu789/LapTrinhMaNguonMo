@@ -7,6 +7,7 @@
     <title>@yield('title', 'MCN Platform - Hệ thống Quản lý Talent Streamers')</title>
     
     <!-- Tailwind CSS CDN -->
+    @include('layouts.partials.fonts')
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -15,6 +16,9 @@
             darkMode: 'class',
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['"Be Vietnam Pro"', 'ui-sans-serif', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif'],
+                    },
                     colors: {
                         primary: {
                             50: '#f5f3ff',
