@@ -8,7 +8,7 @@
     <!-- Streamer Hero Banner -->
     <div class="bg-gradient-to-r from-slate-900 to-emerald-950 rounded-3xl p-6 sm:p-8 text-white shadow-md flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
         <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-5 text-center sm:text-left">
-            <img src="{{ $profile->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200' }}" class="w-20 h-20 rounded-2xl border-2 border-emerald-500/50 shadow-lg object-cover">
+            <img src="{{ $profile->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200' }}" alt="{{ $profile->stage_name ?? 'Avatar' }}" width="80" height="80" decoding="async" class="w-20 h-20 rounded-2xl border-2 border-emerald-500/50 shadow-lg object-cover">
             <div>
                 <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     {{ $profile->category }}
@@ -132,8 +132,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const ctx = document.getElementById('streamerTrendChart');
     if (!ctx) return;
 
-    const rawDates = {!! json_encode($chartMetrics->pluck('stream_date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d/m'))) !!};
-    const rawAvg = {!! json_encode($chartMetrics->pluck('avg_viewers')) !!};
+    const rawDates = {{ Js::from($chartMetrics->pluck('stream_date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d/m'))) }};
+    const rawAvg = {{ Js::from($chartMetrics->pluck('avg_viewers')) }};
 
     new Chart(ctx, {
         type: 'line',

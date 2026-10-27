@@ -45,7 +45,7 @@
                 <i class="fas fa-wallet"></i>
             </div>
             <div>
-                <span class="text-xs font-semibold text-slate-400 uppercase">Hoa Hồng Agency (15%)</span>
+                <span class="text-xs font-semibold text-slate-400 uppercase">Hoa Hồng Agency ({{ rtrim(rtrim(number_format((float) config('mcn.commission_rate', 15), 2, ',', '.'), '0'), ',') }}%)</span>
                 <div class="text-2xl font-black text-indigo-600">{{ number_format($stats['total_commission'], 0, ',', '.') }} đ</div>
                 <span class="text-[11px] text-indigo-600 font-semibold">Lợi nhuận gộp MCN</span>
             </div>
@@ -112,7 +112,7 @@
                 @foreach($activeTalents as $at)
                     <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
                         <div class="flex items-center space-x-2.5">
-                            <img src="{{ $at->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100' }}" class="w-8 h-8 rounded-full object-cover">
+                            <img src="{{ $at->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100' }}" alt="" width="32" height="32" loading="lazy" decoding="async" class="w-8 h-8 rounded-full object-cover">
                             <div>
                                 <div class="font-bold text-slate-900">{{ $at->stage_name }}</div>
                                 <span class="text-[10px] text-slate-400">QL: {{ $at->manager->name ?? 'Chưa gán' }}</span>

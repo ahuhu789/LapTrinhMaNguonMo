@@ -25,8 +25,22 @@
         </form>
     </div>
 
+    @php
+        // Backend (UpdateUserRoleRequest) reports errors under 'role' without saying which row.
+        // Each form posts a hidden _target_user_id, which Laravel flashes back as old input,
+        // so the message can be shown next to the right row.
+        $roleErrorUserId = $errors->has('role') ? (int) old('_target_user_id') : null;
+        $roleErrorRowVisible = $roleErrorUserId && $users->contains('id', $roleErrorUserId);
+    @endphp
+
     <!-- Users Table -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        @if($errors->has('role') && !$roleErrorRowVisible)
+            <div class="m-4 mb-0 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center" role="alert">
+                <i class="fas fa-circle-exclamation mr-2"></i>
+                <span>Không thể cập nhật vai trò: {{ $errors->first('role') }}</span>
+            </div>
+        @endif
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
                 <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold border-b border-slate-200">
@@ -58,9 +72,11 @@
                             </td>
                             <td class="py-3.5 px-4 text-slate-400">{{ $u->created_at->format('d/m/Y') }}</td>
                             <td class="py-3.5 px-4 text-right">
+                                @php $roleErrorHere = $roleErrorRowVisible && $roleErrorUserId === $u->id; @endphp
                                 <form action="{{ route('admin.users.role', $u->id) }}" method="POST" class="inline-flex items-center space-x-1">
                                     @csrf
-                                    <select name="role" class="text-[11px] border border-slate-300 rounded-lg px-2 py-1 focus:ring-1 focus:ring-primary-500">
+                                    <input type="hidden" name="_target_user_id" value="{{ $u->id }}">
+                                    <select name="role" @if($roleErrorHere) aria-invalid="true" @endif class="text-[11px] border {{ $roleErrorHere ? 'border-rose-400 ring-1 ring-rose-300' : 'border-slate-300' }} rounded-lg px-2 py-1 focus:ring-1 focus:ring-primary-500">
                                         <option value="admin" {{ $u->role == 'admin' ? 'selected' : '' }}>Admin</option>
                                         <option value="manager" {{ $u->role == 'manager' ? 'selected' : '' }}>Manager</option>
                                         <option value="streamer" {{ $u->role == 'streamer' ? 'selected' : '' }}>Streamer</option>
@@ -70,6 +86,9 @@
                                         Cập nhật
                                     </button>
                                 </form>
+                                @if($roleErrorHere)
+                                    <p class="mt-1 text-[11px] font-semibold text-rose-600" role="alert">{{ $errors->first('role') }}</p>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

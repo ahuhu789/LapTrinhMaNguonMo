@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (!toggleBtn || !chatWindow) return;
 
+    const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200';
+
     // Cache initial welcome message HTML for reset
     const initialWelcomeHtml = messagesContainer.innerHTML;
 
@@ -61,37 +63,95 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-            const response = await fetch('/ai/recommend', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                },
-                body: JSON.stringify({ message: text })
-            });
+            let response;
+            try {
+                response = await fetch('/ai/recommend', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ message: text })
+                });
+            } catch (networkError) {
+                console.error(networkError);
+                removeLoading(loadingId);
+                appendMessage('bot', 'Không thể kết nối đến máy chủ AI lúc này. Vui lòng kiểm tra mạng và thử lại sau ít giây.');
+                return;
+            }
 
+            let data = null;
+            try { data = await response.json(); } catch (e) { data = null; }
             removeLoading(loadingId);
 
             if (!response.ok) {
-                throw new Error('Lỗi kết nối máy chủ');
+                appendMessage('bot', errorMessageForResponse(response, data));
+                return;
             }
 
-            const data = await response.json();
-            if (data.success) {
+            if (data && data.success) {
                 appendMessage('bot', data.reply, data.matched_talents || []);
             } else {
                 appendMessage('bot', 'Xin lỗi, tôi chưa hiểu rõ yêu cầu. Bạn có thể nêu cụ thể thể loại game (CS2, LMHT...) hoặc ngân sách không?');
             }
         } catch (error) {
             removeLoading(loadingId);
-            appendMessage('bot', 'Không thể kết nối đến máy chủ AI lúc này. Vui lòng thử lại sau ít giây.');
+            appendMessage('bot', 'Đã có lỗi khi xử lý phản hồi từ trợ lý AI. Vui lòng thử lại sau ít giây.');
             console.error(error);
         } finally {
+            removeLoading(loadingId);
             setSubmitting(false);
             chatInput.focus();
         }
     });
+
+    // Map HTTP error statuses from /ai/recommend to friendly Vietnamese messages.
+    function errorMessageForResponse(response, data) {
+        switch (response.status) {
+            case 429: {
+                const wait = retryAfterText(response.headers.get('Retry-After'));
+                return 'Bạn gửi quá nhanh, vui lòng thử lại sau ' + (wait || 'ít phút') + '.';
+            }
+            case 419:
+                return 'Phiên làm việc đã hết hạn. Vui lòng tải lại trang (F5) rồi thử lại.';
+            case 401:
+                return 'Vui lòng đăng nhập để dùng trợ lý AI.';
+            case 422:
+                return firstValidationMessage(data) || 'Nội dung câu hỏi chưa hợp lệ. Vui lòng nhập lại (không để trống, không quá dài).';
+            default:
+                return 'Trợ lý AI đang gặp sự cố. Vui lòng thử lại sau ít giây.';
+        }
+    }
+
+    // Retry-After may be delta-seconds or an HTTP date.
+    function retryAfterText(header) {
+        if (!header) return '';
+        let seconds = Number(header);
+        if (!Number.isFinite(seconds)) {
+            const date = Date.parse(header);
+            if (Number.isNaN(date)) return '';
+            seconds = (date - Date.now()) / 1000;
+        }
+        seconds = Math.ceil(seconds);
+        if (seconds <= 0) return '';
+        if (seconds < 60) return seconds + ' giây';
+        return Math.ceil(seconds / 60) + ' phút';
+    }
+
+    function firstValidationMessage(data) {
+        if (data && data.errors && typeof data.errors === 'object') {
+            for (const key of Object.keys(data.errors)) {
+                const msgs = data.errors[key];
+                if (Array.isArray(msgs) && msgs.length) return String(msgs[0]);
+                if (typeof msgs === 'string' && msgs) return msgs;
+            }
+        }
+        if (data && typeof data.message === 'string' && data.message) return data.message;
+        return '';
+    }
 
     function setSubmitting(isSubmitting) {
         if (chatSubmit) chatSubmit.disabled = isSubmitting;
@@ -224,15 +284,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     <span class="text-[10px] text-slate-400 font-normal lowercase">${talents.length} hồ sơ</span>
                 </div>
                 ${talents.map(t => {
-                    const avatar = t.avatar_url || 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200';
+                    const avatar = safeImageUrl(t.avatar_url);
                     const formattedRate = new Intl.NumberFormat('vi-VN').format(t.rate_per_hour) + ' đ/h';
-                    const formattedViews = new Intl.NumberFormat('vi-VN').format(t.avg_viewers);
+                    const formattedViews = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(Number(t.avg_viewers_calc ?? t.avg_viewers ?? 0) || 0);
                     const bioSnippet = t.bio ? escapeHtml(t.bio) : '';
 
                     return `
                         <div class="p-2.5 rounded-xl bg-slate-50 hover:bg-white border border-slate-200 hover:border-primary-300 hover:shadow-md transition-all duration-150 group">
                             <div class="flex items-center space-x-2.5">
-                                <img src="${avatar}" alt="${escapeHtml(t.stage_name)}" class="w-11 h-11 rounded-lg object-cover border border-slate-200 shadow-2xs shrink-0 group-hover:scale-105 transition-transform" onerror="this.src='https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200'">
+                                <img src="${escapeHtml(avatar)}" alt="${escapeHtml(t.stage_name)}" width="44" height="44" loading="lazy" class="w-11 h-11 rounded-lg object-cover border border-slate-200 shadow-2xs shrink-0 group-hover:scale-105 transition-transform" onerror="this.onerror=null;this.src='${DEFAULT_AVATAR}'">
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center justify-between gap-1">
                                         <span class="font-bold text-slate-800 text-xs truncate flex items-center space-x-1">
@@ -249,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             </div>
                             <div class="mt-2 pt-1.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
                                 <span class="text-[10px] text-slate-400 line-clamp-1 flex-1 pr-2">${bioSnippet}</span>
-                                <a href="/talents/${t.id}" target="_blank" class="shrink-0 text-[10px] font-bold text-primary-600 hover:text-primary-700 inline-flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform bg-primary-50 hover:bg-primary-100 px-2 py-0.5 rounded">
+                                <a href="/talents/${encodeURIComponent(t.id)}" target="_blank" class="shrink-0 text-[10px] font-bold text-primary-600 hover:text-primary-700 inline-flex items-center space-x-1 group-hover:translate-x-0.5 transition-transform bg-primary-50 hover:bg-primary-100 px-2 py-0.5 rounded">
                                     <span>Hồ Sơ</span>
                                     <i class="fas fa-arrow-right text-[8px]"></i>
                                 </a>
@@ -293,6 +353,25 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }, 50);
+    }
+
+    // Only allow http(s) or same-origin relative URLs for images; anything else
+    // (javascript:, data:, protocol-relative //host, malformed) falls back to the default avatar.
+    function safeImageUrl(url) {
+        if (typeof url !== 'string') return DEFAULT_AVATAR;
+        const trimmed = url.trim();
+        if (!trimmed) return DEFAULT_AVATAR;
+        // Relative path on the same origin (e.g. /images/streamers/x.jpg) but not //evil.host
+        if (trimmed.startsWith('/') && !trimmed.startsWith('//')) return trimmed;
+        try {
+            const parsed = new URL(trimmed, window.location.origin);
+            if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+                return parsed.href;
+            }
+        } catch (e) {
+            // invalid URL -> fall through to default
+        }
+        return DEFAULT_AVATAR;
     }
 
     function escapeHtml(string) {

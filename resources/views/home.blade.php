@@ -72,7 +72,7 @@
             <div class="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-200 overflow-hidden flex flex-col group">
                 <!-- Banner & Avatar -->
                 <div class="h-32 bg-slate-200 relative overflow-hidden">
-                    <img src="{{ $talent->banner_url ?? 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800' }}" alt="Banner" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    <img src="{{ $talent->banner_url ?? 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800' }}" alt="Banner" width="800" height="256" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                     <span class="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-bold bg-white/90 text-slate-800 backdrop-blur-sm shadow-sm">
                         {{ $talent->category }}
                     </span>
@@ -80,7 +80,7 @@
                 
                 <div class="px-6 pt-0 pb-6 flex-1 flex flex-col relative">
                     <div class="flex justify-between items-end -mt-10 mb-3">
-                        <img src="{{ $talent->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200' }}" alt="{{ $talent->stage_name }}" class="w-20 h-20 rounded-2xl border-4 border-white shadow-md object-cover">
+                        <img src="{{ $talent->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200' }}" alt="{{ $talent->stage_name }}" width="80" height="80" loading="lazy" decoding="async" class="w-20 h-20 rounded-2xl border-4 border-white shadow-md object-cover">
                         <div class="text-right">
                             <span class="text-xs text-slate-400 block font-medium">Giá tham khảo</span>
                             <span class="text-base font-extrabold text-primary-600">{{ $talent->formatted_rate }}</span>
@@ -100,11 +100,11 @@
                     <div class="bg-slate-50 rounded-xl p-3 grid grid-cols-2 gap-2 text-center text-xs mb-4 border border-slate-100">
                         <div>
                             <span class="text-slate-400 block text-[11px]">Avg Viewers</span>
-                            <span class="font-bold text-slate-800">{{ number_format($talent->avg_viewers) }}</span>
+                            <span class="font-bold text-slate-800">{{ number_format((float) ($talent->avg_viewers_calc ?? $talent->avg_viewers ?? 0)) }}</span>
                         </div>
                         <div>
                             <span class="text-slate-400 block text-[11px]">Peak Viewers</span>
-                            <span class="font-bold text-indigo-600">{{ number_format($talent->peak_viewers) }}</span>
+                            <span class="font-bold text-indigo-600">{{ number_format((float) ($talent->peak_viewers_calc ?? $talent->peak_viewers ?? 0)) }}</span>
                         </div>
                     </div>
 
