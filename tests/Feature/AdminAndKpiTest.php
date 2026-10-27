@@ -121,4 +121,19 @@ class AdminAndKpiTest extends TestCase
         $this->assertSame(1500, StreamMetric::first()->avg_viewers);
         $this->assertSame('2026-10-05', StreamMetric::first()->getRawOriginal('stream_date'));
     }
+
+    public function test_manager_dashboard_renders_without_metrics_eager_load(): void
+    {
+        $manager = $this->makeUser('manager');
+        $streamer = $this->makeStreamer($manager);
+
+        $managed = $this->actingAs($manager)
+            ->get(route('manager.dashboard'))
+            ->assertOk()
+            ->assertSee($streamer->stage_name)
+            ->viewData('managedStreamers');
+
+        $this->assertFalse($managed->first()->relationLoaded('metrics'));
+        $this->assertTrue($managed->first()->relationLoaded('currentKpi'));
+    }
 }

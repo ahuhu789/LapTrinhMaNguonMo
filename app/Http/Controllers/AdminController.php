@@ -55,7 +55,7 @@ class AdminController extends Controller
 
         // Danh sách Streamers thuộc quyền quản lý của Manager này
         $managedStreamers = StreamerProfile::where('manager_id', $user->id)
-            ->with(['metrics', 'currentKpi'])
+            ->with('currentKpi')
             ->get();
 
         $streamerIds = $managedStreamers->pluck('id');
