@@ -55,4 +55,52 @@ class DatabaseSeederTest extends TestCase
             '/^\d{4}-\d{2}-\d{2}$/', $m->getRawOriginal('stream_date')
         ));
     }
+
+    private function ratios(Kpi $kpi): array
+    {
+        return [
+            'hours' => (float) $kpi->achieved_hours / (float) $kpi->target_hours * 100,
+            'revenue' => (float) $kpi->achieved_revenue / (float) $kpi->target_revenue * 100,
+        ];
+    }
+
+    public function test_seeded_kpis_cover_over_mid_and_low_achievement_bands(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $kpis = Kpi::where('month_year', now()->format('Y-m'))->get()->keyBy('streamer_id');
+
+        // KillerQueen (#3): vượt chỉ tiêu cả giờ lẫn doanh thu -> achieved
+        $over = $this->ratios($kpis[3]);
+        $this->assertGreaterThanOrEqual(100, $over['hours']);
+        $this->assertGreaterThanOrEqual(100, $over['revenue']);
+        $this->assertSame('achieved', $kpis[3]->status);
+
+        // Nhism (#4): 60-90%
+        $mid = $this->ratios($kpis[4]);
+        foreach ($mid as $value) {
+            $this->assertGreaterThanOrEqual(60, $value);
+            $this->assertLessThanOrEqual(90, $value);
+        }
+        $this->assertSame('in_progress', $kpis[4]->status);
+
+        // QNT (#6): < 50%
+        $low = $this->ratios($kpis[6]);
+        $this->assertLessThan(50, $low['hours']);
+        $this->assertLessThan(50, $low['revenue']);
+        $this->assertSame('in_progress', $kpis[6]->status);
+    }
+
+    public function test_seeded_metrics_are_spread_over_many_days_of_the_month(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $days = StreamMetric::whereBetween('stream_date', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
+            ->distinct()->count('stream_date');
+
+        $this->assertGreaterThanOrEqual(20, $days);
+        $this->assertSame(
+            StreamMetric::count(),
+            StreamMetric::select('streamer_id', 'platform', 'stream_date')->distinct()->get()->count()
+        );
+    }
 }
