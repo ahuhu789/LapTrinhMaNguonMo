@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\NormalizesDateTimes;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreScheduleEventRequest extends FormRequest
 {
+    use NormalizesDateTimes;
+
     public function authorize(): bool
     {
         return $this->user()?->streamerProfile !== null;

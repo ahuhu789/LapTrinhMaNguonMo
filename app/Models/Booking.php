@@ -11,7 +11,13 @@ class Booking extends Model
 
     protected $table = 'bookings';
 
-    /** Trạng thái cho phép từ chối booking */
+    /** Trạng thái booking còn hiệu lực (chiếm lịch của talent & của client) */
+    public const ACTIVE_STATUSES = ['pending', 'reviewing', 'approved'];
+
+    /** Trạng thái cho phép phê duyệt */
+    public const APPROVABLE_STATUSES = ['pending', 'reviewing'];
+
+    /** Trạng thái cho phép Manager từ chối thủ công (từ chối tự động áp dụng cho pending & reviewing) */
     public const REJECTABLE_STATUSES = ['pending'];
 
     protected $fillable = [
@@ -52,6 +58,19 @@ class Booking extends Model
     public function schedule()
     {
         return $this->hasOne(Schedule::class, 'reference_id');
+    }
+
+    public function isApprovable(): bool
+    {
+        return in_array($this->status, self::APPROVABLE_STATUSES, true);
+    }
+
+    /**
+     * Alias đọc của cột reject_reason (lý do từ chối thủ công hoặc tự động).
+     */
+    public function getRejectionReasonAttribute(): ?string
+    {
+        return $this->reject_reason;
     }
 
     public function isRejectable(): bool

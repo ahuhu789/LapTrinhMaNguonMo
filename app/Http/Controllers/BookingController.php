@@ -67,34 +67,15 @@ class BookingController extends Controller
     public function store(StoreBookingRequest $request, BookingCollisionService $collisionService)
     {
         $validated = $request->validated();
-
         $streamer = StreamerProfile::findOrFail($validated['streamer_id']);
 
-        // Thuật toán kiểm tra xung đột thời gian (Collision Check) trước khi gửi
-        $collisionCheck = $collisionService->checkCollision(
-            $streamer->id,
-            $validated['start_time'],
-            $validated['end_time']
-        );
+        // Quy tắc lịch: booking trùng giờ vẫn được lưu nhưng bị từ chối tự động kèm lý do
+        $booking = $collisionService->createBooking($streamer, $request->user(), $validated);
 
-        if ($collisionCheck['has_conflict']) {
-            return back()->withInput()->withErrors([
-                'start_time' => 'Khung giờ này đã bị trùng lịch! ' . $collisionCheck['message'],
-            ]);
+        if ($booking->status === 'rejected') {
+            return redirect()->route('bookings.show', $booking)
+                ->with('error', 'Yêu cầu booking đã bị từ chối tự động do trùng lịch. ' . $booking->reject_reason);
         }
-
-        // Tạo đơn booking mới ở trạng thái 'pending'
-        $booking = Booking::create([
-            'client_id' => Auth::id(),
-            'streamer_id' => $streamer->id,
-            'manager_id' => $streamer->manager_id,
-            'start_time' => $validated['start_time'],
-            'end_time' => $validated['end_time'],
-            'job_description' => $validated['job_description'],
-            'budget' => $validated['budget'],
-            'commission_rate' => config('mcn.commission_rate'),
-            'status' => 'pending',
-        ]);
 
         return redirect()->route('bookings.show', $booking)
             ->with('success', 'Yêu cầu booking của bạn đã được gửi tới Manager phụ trách để phê duyệt.');
@@ -107,10 +88,13 @@ class BookingController extends Controller
     {
         $validated = $request->validated();
 
+        // Quy tắc 1 (lịch talent) + quy tắc 2 (booking của chính người dùng đang đăng nhập)
         $result = $collisionService->checkCollision(
             (int) $validated['streamer_id'],
             $validated['start_time'],
-            $validated['end_time']
+            $validated['end_time'],
+            null,
+            $request->user()->id
         );
 
         return response()->json(['has_conflict' => (bool) $result['has_conflict']]);
@@ -125,16 +109,10 @@ class BookingController extends Controller
 
         $this->authorize('view', $booking);
 
-        // Kiểm tra xem hiện tại có đang bị trùng với lịch nào không (để hiển thị cảnh báo cho Manager)
-        $conflictInfo = null;
-        if (in_array($booking->status, ['pending', 'reviewing'])) {
-            $conflictInfo = $collisionService->checkCollision(
-                $booking->streamer_id,
-                $booking->start_time,
-                $booking->end_time,
-                $booking->id
-            );
-        }
+        // Cảnh báo cho Manager nếu khung giờ đã bị chiếm bởi lịch đã khóa/duyệt (duyệt sẽ bị từ chối tự động)
+        $conflictInfo = $booking->isApprovable()
+            ? $collisionService->checkApprovalConflict($booking)
+            : null;
 
         return view('bookings.show', compact('booking', 'conflictInfo'));
     }

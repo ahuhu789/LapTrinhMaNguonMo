@@ -13,7 +13,7 @@ class BookingApprovalConflictTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_approve_is_refused_when_schedule_conflicts(): void
+    public function test_approve_auto_rejects_booking_when_schedule_conflicts(): void
     {
         $manager = User::factory()->manager()->create();
         $streamer = StreamerProfile::factory()->managedBy($manager)->create();
@@ -35,14 +35,18 @@ class BookingApprovalConflictTest extends TestCase
             ->from(route('bookings.show', $booking))
             ->post(route('bookings.approve', $booking))
             ->assertRedirect(route('bookings.show', $booking))
-            ->assertSessionHas('error', fn ($msg) => str_starts_with($msg, 'Không thể phê duyệt!'))
+            ->assertSessionHas('error', fn ($msg) => str_starts_with($msg, 'Không thể phê duyệt!')
+                && str_contains($msg, 'tự động từ chối'))
             ->assertSessionMissing('success');
 
-        $this->assertSame('pending', $booking->fresh()->status);
+        $fresh = $booking->fresh();
+        $this->assertSame('rejected', $fresh->status);
+        $this->assertStringContainsString('Trùng với lịch bận của talent', $fresh->reject_reason);
+        $this->assertSame($fresh->reject_reason, $fresh->rejection_reason);
         $this->assertFalse(Schedule::where('reference_id', $booking->id)->exists());
     }
 
-    public function test_second_overlapping_booking_cannot_be_approved_after_first(): void
+    public function test_approving_first_booking_auto_rejects_overlapping_second(): void
     {
         $manager = User::factory()->manager()->create();
         $streamer = StreamerProfile::factory()->managedBy($manager)->create();
@@ -51,11 +55,14 @@ class BookingApprovalConflictTest extends TestCase
         $first = Booking::factory()->for($streamer, 'streamer')->between($start, $start->copy()->addHours(3))->create();
         $second = Booking::factory()->for($streamer, 'streamer')->between($start->copy()->addHour(), $start->copy()->addHours(4))->create();
 
-        $this->actingAs($manager)->post(route('bookings.approve', $first))->assertSessionHas('success');
-        $this->actingAs($manager)->post(route('bookings.approve', $second))->assertSessionHas('error');
+        $this->actingAs($manager)->post(route('bookings.approve', $first))
+            ->assertSessionHas('success', fn ($msg) => str_contains($msg, 'Đã tự động từ chối 1 booking'));
+        $this->actingAs($manager)->post(route('bookings.approve', $second))
+            ->assertSessionHas('error', fn ($msg) => str_contains($msg, 'đã được xử lý từ trước'));
 
         $this->assertSame('approved', $first->fresh()->status);
-        $this->assertSame('pending', $second->fresh()->status);
+        $this->assertSame('rejected', $second->fresh()->status);
+        $this->assertSame('Xung đột với lịch đã được duyệt', $second->fresh()->reject_reason);
         $this->assertSame(1, Schedule::where('streamer_id', $streamer->id)->count());
     }
 

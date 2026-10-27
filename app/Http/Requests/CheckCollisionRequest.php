@@ -3,11 +3,14 @@
 namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\Validator;
+use App\Http\Requests\Concerns\NormalizesDateTimes;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 class CheckCollisionRequest extends FormRequest
 {
+    use NormalizesDateTimes;
+
     public function authorize(): bool
     {
         return $this->user() !== null;
