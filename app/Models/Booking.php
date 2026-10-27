@@ -62,17 +62,17 @@ class Booking extends Model
 
     public function getFormattedBudgetAttribute(): string
     {
-        return number_format($this->budget, 0, ',', '.') . ' đ';
+        return number_format((float) $this->budget, 0, ',', '.') . ' đ';
     }
 
     public function getAgencyCommissionAttribute(): float
     {
-        return round($this->budget * ($this->commission_rate / 100), 2);
+        return round((float) $this->budget * ((float) $this->commission_rate / 100), 2);
     }
 
     public function getStreamerNetIncomeAttribute(): float
     {
-        return $this->budget - $this->agency_commission;
+        return round((float) $this->budget - $this->agency_commission, 2);
     }
 
     public function getStatusLabelAttribute(): string

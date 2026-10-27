@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Booking;
 use App\Models\Schedule;
+use App\Models\StreamerProfile;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Exception;
@@ -76,53 +77,61 @@ class BookingCollisionService
      */
     public function approveAndLockSchedule(Booking $booking, int $managerId): array
     {
-        // 1. Kiểm tra trạng thái hợp lệ
-        if (!in_array($booking->status, ['pending', 'reviewing'])) {
-            return [
-                'success' => false,
-                'message' => 'Booking này đã được xử lý từ trước (' . $booking->status_label . ').',
-            ];
-        }
-
-        // 2. Chạy thuật toán kiểm tra xung đột thời gian
-        $collisionCheck = $this->checkCollision(
-            $booking->streamer_id,
-            $booking->start_time,
-            $booking->end_time,
-            $booking->id
-        );
-
-        if ($collisionCheck['has_conflict']) {
-            return [
-                'success' => false,
-                'message' => 'Không thể phê duyệt! ' . $collisionCheck['message'],
-            ];
-        }
-
-        // 3. Thực hiện khóa lịch trong Database Transaction
         try {
-            DB::transaction(function () use ($booking, $managerId) {
-                // Cập nhật trạng thái booking
-                $booking->update([
+            $result = DB::transaction(function () use ($booking, $managerId) {
+                // 1. Khóa hàng streamer để tuần tự hóa mọi thao tác duyệt lịch của cùng streamer
+                //    (chống race condition hai Manager duyệt 2 booking trùng giờ cùng lúc)
+                StreamerProfile::whereKey($booking->streamer_id)->lockForUpdate()->first();
+
+                // 2. Đọc lại booking dưới khóa để có trạng thái mới nhất
+                $locked = Booking::whereKey($booking->id)->lockForUpdate()->firstOrFail();
+
+                if (!in_array($locked->status, ['pending', 'reviewing'])) {
+                    return [
+                        'success' => false,
+                        'message' => 'Booking này đã được xử lý từ trước (' . $locked->status_label . ').',
+                    ];
+                }
+
+                // 3. Kiểm tra xung đột thời gian bên trong transaction
+                $collisionCheck = $this->checkCollision(
+                    $locked->streamer_id,
+                    $locked->start_time,
+                    $locked->end_time,
+                    $locked->id
+                );
+
+                if ($collisionCheck['has_conflict']) {
+                    return [
+                        'success' => false,
+                        'message' => 'Không thể phê duyệt! ' . $collisionCheck['message'],
+                    ];
+                }
+
+                // 4. Cập nhật trạng thái & khóa lịch
+                $locked->update([
                     'status' => 'approved',
                     'manager_id' => $managerId,
                 ]);
 
-                // Tạo bản ghi lịch khóa trong schedules
                 Schedule::create([
-                    'streamer_id'  => $booking->streamer_id,
+                    'streamer_id'  => $locked->streamer_id,
                     'event_type'   => 'booking',
-                    'reference_id' => $booking->id,
-                    'start_time'   => $booking->start_time,
-                    'end_time'     => $booking->end_time,
-                    'title'        => 'Booking: ' . mb_substr($booking->job_description, 0, 80),
+                    'reference_id' => $locked->id,
+                    'start_time'   => $locked->start_time,
+                    'end_time'     => $locked->end_time,
+                    'title'        => 'Booking: ' . mb_substr($locked->job_description, 0, 80),
                 ]);
+
+                return [
+                    'success' => true,
+                    'message' => 'Đã phê duyệt booking và tự động khóa lịch trình thành công.',
+                ];
             });
 
-            return [
-                'success' => true,
-                'message' => 'Đã phê duyệt booking và tự động khóa lịch trình thành công.',
-            ];
+            $booking->refresh();
+
+            return $result;
         } catch (Exception $e) {
             return [
                 'success' => false,

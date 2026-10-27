@@ -18,11 +18,11 @@ class TalentListingPerformanceTest extends TestCase
         $profiles = [];
         for ($i = 1; $i <= $count; $i++) {
             $p = $this->makeStreamer(null, ['rate_per_hour' => 500000 + $i * 100000]);
-            foreach ([$i * 100, $i * 300] as $avg) {
+            foreach (['2026-10-01' => $i * 100, '2026-10-02' => $i * 300] as $date => $avg) {
                 StreamMetric::create([
                     'streamer_id' => $p->id,
                     'platform' => 'youtube',
-                    'stream_date' => '2026-10-01',
+                    'stream_date' => $date,
                     'duration_hours' => 2,
                     'avg_viewers' => $avg,
                     'peak_viewers' => $avg * 2,

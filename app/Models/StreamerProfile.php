@@ -134,6 +134,6 @@ class StreamerProfile extends Model
      */
     public function getFormattedRateAttribute(): string
     {
-        return number_format($this->rate_per_hour, 0, ',', '.') . ' đ/giờ';
+        return number_format((float) $this->rate_per_hour, 0, ',', '.') . ' đ/giờ';
     }
 }

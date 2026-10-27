@@ -101,4 +101,24 @@ class AdminAndKpiTest extends TestCase
     {
         $this->actingAs($this->makeUser('manager'))->get(route('admin.users'))->assertForbidden();
     }
+
+    public function test_csv_reimport_updates_existing_metric_instead_of_duplicating(): void
+    {
+        $streamer = $this->makeStreamer();
+        $service = app(CsvMetricsService::class);
+        $header = 'streamer_id,platform,stream_date,duration_hours,avg_viewers,peak_viewers,followers_gained';
+
+        foreach ([1000, 1500] as $avg) {
+            $path = tempnam(sys_get_temp_dir(), 'csv');
+            file_put_contents($path, $header . "\n{$streamer->id},twitch,2026-10-05,2,{$avg},3000,5");
+            $result = $service->importCsv($path, [$streamer->id]);
+            @unlink($path);
+            $this->assertTrue($result['success']);
+        }
+
+        $this->assertSame(1, $result['updated_count']);
+        $this->assertSame(1, StreamMetric::count());
+        $this->assertSame(1500, StreamMetric::first()->avg_viewers);
+        $this->assertSame('2026-10-05', StreamMetric::first()->getRawOriginal('stream_date'));
+    }
 }

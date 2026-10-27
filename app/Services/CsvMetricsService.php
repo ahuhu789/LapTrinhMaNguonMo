@@ -74,6 +74,8 @@ class CsvMetricsService
 
         $colMap = array_flip($header);
         $importedCount = 0;
+        $createdCount = 0;
+        $updatedCount = 0;
         $rowNumber = 1;
         $errors = [];
         $affectedStreamerMonths = []; // Lưu lại danh sách ['streamer_id' => X, 'month_year' => 'YYYY-MM'] để tái tính KPI
@@ -122,18 +124,27 @@ class CsvMetricsService
                     continue;
                 }
 
-                // Ghi vào bảng stream_metrics
-                StreamMetric::create([
-                    'streamer_id' => $streamerId,
-                    'platform' => $platform,
-                    'stream_date' => $dateObj->toDateString(),
-                    'duration_hours' => $duration,
-                    'avg_viewers' => max(0, $avgViewers),
-                    'peak_viewers' => max(0, $peakViewers),
-                    'followers_gained' => $followers,
-                    'source_type' => 'csv_import',
-                ]);
+                // Ghi vào bảng stream_metrics (idempotent: cùng streamer + nền tảng + ngày thì cập nhật)
+                $metric = StreamMetric::updateOrCreate(
+                    [
+                        'streamer_id' => $streamerId,
+                        'platform' => $platform,
+                        'stream_date' => $dateObj->toDateString(),
+                    ],
+                    [
+                        'duration_hours' => $duration,
+                        'avg_viewers' => max(0, $avgViewers),
+                        'peak_viewers' => max(0, $peakViewers),
+                        'followers_gained' => $followers,
+                        'source_type' => 'csv_import',
+                    ]
+                );
 
+                if ($metric->wasRecentlyCreated) {
+                    $createdCount++;
+                } else {
+                    $updatedCount++;
+                }
                 $importedCount++;
 
                 // Đánh dấu tháng cần aggregate
@@ -154,8 +165,10 @@ class CsvMetricsService
 
             return [
                 'success' => true,
-                'message' => "Import thành công $importedCount bản ghi metrics. Đã cập nhật $updatedKpisCount chỉ tiêu KPI liên quan.",
+                'message' => "Import thành công $importedCount bản ghi metrics ($createdCount mới, $updatedCount cập nhật). Đã cập nhật $updatedKpisCount chỉ tiêu KPI liên quan.",
                 'imported_count' => $importedCount,
+                'created_count' => $createdCount,
+                'updated_count' => $updatedCount,
                 'updated_kpis' => $updatedKpisCount,
                 'errors' => $errors,
             ];
