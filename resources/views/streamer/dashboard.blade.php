@@ -36,7 +36,7 @@
             <div>
                 <h3 class="font-bold text-slate-900 text-sm flex items-center space-x-2">
                     <i class="fas fa-bullseye text-emerald-600"></i>
-                    <span>Chỉ Tiêu KPI Tháng Này ({{ \Carbon\Carbon::now()->format('m/Y') }})</span>
+                    <span>Chỉ Tiêu KPI Tháng Này (<x-datetime :value="now()" format="m/Y" />)</span>
                 </h3>
                 <p class="text-xs text-slate-400 mt-0.5">Dữ liệu được cập nhật tự động qua các buổi stream và booking đã hoàn tất.</p>
             </div>
@@ -103,7 +103,7 @@
                             </div>
                             <p class="text-slate-500 line-clamp-1 mb-2">{{ $ub->job_description }}</p>
                             <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-100 pt-2">
-                                <span><i class="far fa-clock mr-1"></i> {{ $ub->start_time->format('H:i d/m') }} - {{ $ub->end_time->format('H:i d/m/Y') }}</span>
+                                <span><i class="far fa-clock mr-1"></i> <x-datetime-range :start="$ub->start_time" :end="$ub->end_time" /></span>
                                 <span class="px-2 py-0.5 rounded font-bold {{ $ub->status_badge_class }}">{{ $ub->status_label }}</span>
                             </div>
                         </div>

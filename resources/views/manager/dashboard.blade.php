@@ -72,7 +72,7 @@
                                 <td class="py-3 px-4 font-mono font-bold">#{{ $pb->id }}</td>
                                 <td class="py-3 px-4 font-semibold text-slate-800">{{ $pb->client->name }}</td>
                                 <td class="py-3 px-4 font-bold text-slate-900">{{ $pb->streamer->stage_name }}</td>
-                                <td class="py-3 px-4">{{ $pb->start_time->format('H:i d/m') }} - {{ $pb->end_time->format('H:i d/m/Y') }}</td>
+                                <td class="py-3 px-4"><x-datetime-range :start="$pb->start_time" :end="$pb->end_time" /></td>
                                 <td class="py-3 px-4 font-extrabold text-emerald-600">{{ $pb->formatted_budget }}</td>
                                 <td class="py-3 px-4 text-right">
                                     <a href="{{ route('bookings.show', $pb->id) }}" class="px-3 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-bold transition">

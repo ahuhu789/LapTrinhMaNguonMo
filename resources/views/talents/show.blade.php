@@ -175,7 +175,7 @@
                                 </div>
                                 <div class="text-slate-500 flex items-center space-x-2">
                                     <i class="far fa-clock"></i>
-                                    <span>{{ $sch->start_time->format('H:i d/m') }} - {{ $sch->end_time->format('H:i d/m/Y') }}</span>
+                                    <x-datetime-range :start="$sch->start_time" :end="$sch->end_time" />
                                 </div>
                             </div>
                         @endforeach

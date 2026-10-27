@@ -120,7 +120,7 @@
                                     <i class="{{ $m->platform_icon }}"></i>
                                     <span>{{ $m->platform }}</span>
                                 </td>
-                                <td class="py-3 px-4">{{ $m->stream_date->format('d/m/Y') }}</td>
+                                <td class="py-3 px-4"><x-datetime :value="$m->stream_date" format="d/m/Y" /></td>
                                 <td class="py-3 px-4 font-semibold text-slate-700">{{ $m->duration_hours }} giờ</td>
                                 <td class="py-3 px-4 font-bold text-slate-800">{{ number_format($m->avg_viewers) }}</td>
                                 <td class="py-3 px-4 font-bold text-indigo-600">{{ number_format($m->peak_viewers) }}</td>

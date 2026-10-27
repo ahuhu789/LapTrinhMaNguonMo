@@ -81,8 +81,8 @@
                                     </span>
                                 </td>
                                 <td class="py-3 px-4 font-bold text-slate-900">{{ $s->title }}</td>
-                                <td class="py-3 px-4 text-slate-700 font-medium">{{ $s->start_time->format('H:i d/m/Y') }}</td>
-                                <td class="py-3 px-4 text-slate-700 font-medium">{{ $s->end_time->format('H:i d/m/Y') }}</td>
+                                <td class="py-3 px-4 text-slate-700 font-medium"><x-datetime :value="$s->start_time" /></td>
+                                <td class="py-3 px-4 text-slate-700 font-medium"><x-datetime :value="$s->end_time" /></td>
                                 <td class="py-3 px-4 text-right">
                                     @if($s->reference_id)
                                         <a href="{{ route('bookings.show', $s->reference_id) }}" class="text-primary-600 font-bold hover:underline">

@@ -70,7 +70,7 @@
                                     <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">CLIENT</span>
                                 @endif
                             </td>
-                            <td class="py-3.5 px-4 text-slate-400">{{ $u->created_at->format('d/m/Y') }}</td>
+                            <td class="py-3.5 px-4 text-slate-400"><x-datetime :value="$u->created_at" format="d/m/Y" /></td>
                             <td class="py-3.5 px-4 text-right">
                                 @php $roleErrorHere = $roleErrorRowVisible && $roleErrorUserId === $u->id; @endphp
                                 <form action="{{ route('admin.users.role', $u->id) }}" method="POST" class="inline-flex items-center space-x-1">

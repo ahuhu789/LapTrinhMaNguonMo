@@ -56,8 +56,8 @@
                                     <span class="text-[11px] text-slate-400">QL: {{ $b->manager->name ?? 'Chưa gán' }}</span>
                                 </td>
                                 <td class="py-3.5 px-4 text-xs">
-                                    <div class="font-semibold text-slate-800">{{ $b->start_time->format('H:i d/m/Y') }}</div>
-                                    <div class="text-slate-400">đến {{ $b->end_time->format('H:i d/m/Y') }} ({{ $b->duration_hours }}h)</div>
+                                    <div class="font-semibold text-slate-800"><x-datetime :value="$b->start_time" /></div>
+                                    <div class="text-slate-400">đến <x-datetime :value="$b->end_time" /> ({{ $b->duration_hours }}h)</div>
                                 </td>
                                 <td class="py-3.5 px-4 font-extrabold text-slate-900">
                                     {{ $b->formatted_budget }}

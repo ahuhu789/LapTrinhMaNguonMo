@@ -14,7 +14,7 @@
                     {{ $booking->status_label }}
                 </span>
             </div>
-            <p class="text-xs text-slate-400 mt-1">Khởi tạo lúc: {{ $booking->created_at->format('H:i d/m/Y') }}</p>
+            <p class="text-xs text-slate-400 mt-1">Khởi tạo lúc: <x-datetime :value="$booking->created_at" /></p>
         </div>
 
         @php
@@ -128,11 +128,11 @@
             <div class="space-y-2 text-xs">
                 <div class="flex justify-between py-1.5 border-b border-slate-100">
                     <span class="text-slate-500">Bắt đầu:</span>
-                    <span class="font-bold text-slate-800">{{ $booking->start_time->format('H:i, ngày d/m/Y') }}</span>
+                    <span class="font-bold text-slate-800"><x-datetime :value="$booking->start_time" /></span>
                 </div>
                 <div class="flex justify-between py-1.5 border-b border-slate-100">
                     <span class="text-slate-500">Kết thúc:</span>
-                    <span class="font-bold text-slate-800">{{ $booking->end_time->format('H:i, ngày d/m/Y') }}</span>
+                    <span class="font-bold text-slate-800"><x-datetime :value="$booking->end_time" /></span>
                 </div>
                 <div class="flex justify-between py-1.5 border-b border-slate-100">
                     <span class="text-slate-500">Tổng thời lượng stream:</span>
