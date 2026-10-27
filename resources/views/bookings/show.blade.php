@@ -41,14 +41,14 @@
                 </button>
                 @endif
 
-                @if($canApproveBooking && $approvalBlocked)
+                @if($canApproveBooking && $approvalBlocked && $canRejectBooking)
                 <button type="button" disabled title="Không thể duyệt: khung giờ trùng lịch đã khóa" class="px-5 py-2.5 rounded-xl bg-slate-200 text-slate-500 font-bold text-xs cursor-not-allowed flex items-center space-x-1.5">
                     <i class="fas fa-lock"></i>
                     <span>Không thể duyệt (trùng lịch)</span>
                 </button>
                 @elseif($canApproveBooking)
                 <!-- Approve Button (with Collision Lock) -->
-                <form action="{{ route('bookings.approve', $booking->id) }}" method="POST" onsubmit="return confirm('Duyệt và khóa lịch cho Talent này? Các booking chờ duyệt khác trùng khung giờ sẽ được tự động từ chối.');">
+                <form action="{{ route('bookings.approve', $booking->id) }}" method="POST" onsubmit="return confirm({{ $approvalBlocked ? "'Khung giờ đang trùng lịch đã khóa: hệ thống sẽ tự động từ chối đơn này. Tiếp tục?'" : "'Duyệt và khóa lịch cho Talent này? Các booking chờ duyệt khác trùng khung giờ sẽ được tự động từ chối.'" }});">
                     @csrf
                     <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 transition flex items-center space-x-1.5">
                         <i class="fas fa-check-double"></i>
@@ -71,7 +71,7 @@
                         {{ $conflictInfo['message'] ?? 'Khung giờ này trùng với lịch đã được khóa của Talent.' }}
                     </p>
                     <p class="text-xs text-rose-600 font-semibold mt-2">
-                        * Khung giờ đang bị chiếm bởi lịch đã khóa của Talent nên hệ thống sẽ chặn thao tác duyệt. Hãy đề nghị khách hàng chọn khung giờ khác hoặc từ chối đơn này.
+                        * Khung giờ đang trùng với lịch đã khóa của Talent hoặc một booking đã duyệt khác của khách hàng, nên đơn này không thể được duyệt. Nếu vẫn bấm duyệt, hệ thống sẽ tự động từ chối đơn kèm lý do.
                     </p>
                 </div>
             </div>
@@ -88,7 +88,11 @@
         @php
             $rejectReason = trim((string) ($booking->rejection_reason ?? $booking->reject_reason ?? ''));
             $autoPrefix = 'Tự động từ chối:';
-            $isAutoRejected = str_starts_with($rejectReason, $autoPrefix);
+            // Contract: auto reasons start with 'Tự động từ chối:'. Cascade reasons currently
+            // written by backend without the prefix are recognised too (see report).
+            $isAutoRejected = str_starts_with($rejectReason, $autoPrefix)
+                || str_starts_with($rejectReason, 'Xung đột với lịch đã được duyệt')
+                || (bool) preg_match('/^Xung đột với booking #\d+ của bạn đã được duyệt/u', $rejectReason);
             $reasonText = $isAutoRejected ? trim(mb_substr($rejectReason, mb_strlen($autoPrefix))) : $rejectReason;
         @endphp
         @if($isAutoRejected)
