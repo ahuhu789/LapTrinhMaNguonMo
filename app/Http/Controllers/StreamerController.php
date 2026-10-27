@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\StreamerProfile;
+use App\Http\Requests\StoreScheduleEventRequest;
+use App\Http\Requests\UpdateStreamerProfileRequest;
 use App\Models\Schedule;
 use App\Models\Booking;
 use App\Models\Kpi;
 use App\Models\StreamMetric;
 use App\Services\BookingCollisionService;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -75,7 +75,7 @@ class StreamerController extends Controller
             abort(404, 'Không tìm thấy hồ sơ streamer.');
         }
 
-        $categories = ['Gaming', 'Just Chatting', 'Review', 'Lifestyle', 'Esports', 'Entertainment'];
+        $categories = config('mcn.categories');
 
         return view('streamer.profile_edit', compact('profile', 'categories'));
     }
@@ -83,26 +83,10 @@ class StreamerController extends Controller
     /**
      * Lưu cập nhật Media Kit cá nhân
      */
-    public function updateProfile(Request $request)
+    public function updateProfile(UpdateStreamerProfileRequest $request)
     {
-        $user = Auth::user();
-        $profile = $user->streamerProfile;
-
-        if (!$profile) {
-            abort(403);
-        }
-
-        $validated = $request->validate([
-            'stage_name' => 'required|string|max:100',
-            'category' => 'required|string|max:100',
-            'bio' => 'nullable|string|max:2000',
-            'rate_per_hour' => 'required|numeric|min:100000',
-            'avatar_url' => 'nullable|url|max:255',
-            'banner_url' => 'nullable|url|max:255',
-        ], [
-            'stage_name.required' => 'Nghệ danh không được để trống.',
-            'rate_per_hour.min' => 'Giá tối thiểu là 100.000 VNĐ/giờ.',
-        ]);
+        $profile = $request->user()->streamerProfile;
+        $validated = $request->validated();
 
         $profile->update($validated);
 
@@ -131,17 +115,10 @@ class StreamerController extends Controller
     /**
      * Streamer tự đăng ký lịch stream hoặc lịch cá nhân
      */
-    public function addEvent(Request $request, BookingCollisionService $collisionService)
+    public function addEvent(StoreScheduleEventRequest $request, BookingCollisionService $collisionService)
     {
-        $user = Auth::user();
-        $profile = $user->streamerProfile;
-
-        $validated = $request->validate([
-            'event_type' => 'required|in:stream,personal,training',
-            'start_time' => 'required|date|after:now',
-            'end_time' => 'required|date|after:start_time',
-            'title' => 'required|string|max:150',
-        ]);
+        $profile = $request->user()->streamerProfile;
+        $validated = $request->validated();
 
         // Kiểm tra xem có bị trùng với lịch nào không
         $collision = $collisionService->checkCollision($profile->id, $validated['start_time'], $validated['end_time']);

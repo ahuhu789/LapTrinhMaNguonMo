@@ -18,7 +18,7 @@ class AiRecommendationService
     {
         // 1. Data Context Injection: Truy vấn danh sách Streamer hoạt động trong CSDL
         $talents = StreamerProfile::where('status', 'active')
-            ->with(['metrics'])
+            ->withViewerStats()
             ->get()
             ->map(function ($t) {
                 return [
@@ -26,17 +26,17 @@ class AiRecommendationService
                     'stage_name' => $t->stage_name,
                     'category' => $t->category,
                     'rate_per_hour' => (float) $t->rate_per_hour,
-                    'avg_viewers' => $t->avg_viewers,
-                    'peak_viewers' => $t->peak_viewers,
+                    'avg_viewers' => (int) round($t->avg_viewers_calc ?? 0),
+                    'peak_viewers' => (int) ($t->peak_viewers_calc ?? 0),
                     'bio' => $t->bio,
                     'avatar_url' => $t->avatar_url,
-                    'profile_url' => url('/talents/' . $t->id),
+                    'profile_url' => route('talents.show', $t->id),
                 ];
             })->toArray();
 
         // 2. Thử gọi API LLM (Gemini hoặc OpenAI) nếu có API Key
-        $geminiKey = config('services.ai.gemini_key') ?: env('GEMINI_API_KEY');
-        $openAiKey = config('services.ai.openai_key') ?: env('OPENAI_API_KEY');
+        $geminiKey = (string) config('services.ai.gemini_key');
+        $openAiKey = (string) config('services.ai.openai_key');
 
         if (!empty($geminiKey)) {
             $aiResponse = $this->callGeminiApi($userQuery, $talents, $geminiKey);
@@ -61,13 +61,8 @@ class AiRecommendationService
      */
     protected function callGeminiApi(string $query, array $talents, string $apiKey): array
     {
-        $models = [
-            'gemini-3.5-flash-lite',
-            'gemini-flash-lite-latest',
-            'gemini-3.7-flash',
-            'gemini-3.1-flash-lite',
-            'gemini-3.8-flash',
-        ];
+        $models = config('services.ai.gemini_models', []);
+        $endpoint = rtrim(config('services.ai.gemini_endpoint'), '/');
 
         $systemInstruction = "Bạn là Trợ lý Cố vấn Booking Talent của MCN Platform. Nhiệm vụ của bạn là dựa vào CSDL Talent Streamers được cung cấp bên dưới để tư vấn và gợi ý 1 đến 3 streamer phù hợp nhất với yêu cầu, ngân sách và thể loại của nhãn hàng. Trả lời bằng tiếng Việt, súc tích, thân thiện, nêu rõ lý do gợi ý và mức giá tham khảo.";
 
@@ -91,13 +86,11 @@ class AiRecommendationService
 
         foreach ($models as $model) {
             try {
-                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . $apiKey;
-
-                $response = Http::withoutVerifying()
-                    ->timeout(10)
-                    ->withHeaders([
-                        'Content-Type' => 'application/json'
-                    ])->post($url, $payload);
+                // API key gửi qua header (không đặt trong query string để tránh lộ trong log/URL)
+                $response = Http::timeout(config('services.ai.timeout', 10))
+                    ->acceptJson()
+                    ->withHeaders(['x-goog-api-key' => $apiKey])
+                    ->post("{$endpoint}/{$model}:generateContent", $payload);
 
                 if ($response->successful()) {
                     $data = $response->json();
@@ -113,7 +106,8 @@ class AiRecommendationService
                     }
                 }
             } catch (Exception $e) {
-                // Thử model tiếp theo trong danh sách
+                // Ghi log rồi thử model tiếp theo trong danh sách
+                report($e);
                 continue;
             }
         }
@@ -127,8 +121,10 @@ class AiRecommendationService
     protected function callOpenAiApi(string $query, array $talents, string $apiKey): array
     {
         try {
-            $response = Http::timeout(6)->withToken($apiKey)->post('https://api.openai.com/v1/chat/completions', [
-                'model' => 'gpt-3.5-turbo',
+            $response = Http::timeout(config('services.ai.timeout', 10))
+                ->withToken($apiKey)
+                ->post(config('services.ai.openai_endpoint'), [
+                'model' => config('services.ai.openai_model'),
                 'messages' => [
                     [
                         'role' => 'system',
@@ -152,7 +148,8 @@ class AiRecommendationService
                 }
             }
         } catch (Exception $e) {
-            // Lỗi mạng hoặc key hết hạn -> Chuyển sang fallback
+            // Lỗi mạng hoặc key hết hạn -> ghi log và chuyển sang fallback
+            report($e);
         }
 
         return ['success' => false];

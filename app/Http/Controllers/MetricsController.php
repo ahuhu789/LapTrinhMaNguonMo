@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UploadMetricsCsvRequest;
 use App\Services\CsvMetricsService;
 use App\Models\StreamMetric;
 use App\Models\StreamerProfile;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class MetricsController extends Controller
@@ -33,33 +33,30 @@ class MetricsController extends Controller
     /**
      * Xử lý file CSV tải lên và kích hoạt cập nhật KPI
      */
-    public function uploadCsv(Request $request, CsvMetricsService $csvService)
+    public function uploadCsv(UploadMetricsCsvRequest $request, CsvMetricsService $csvService)
     {
-        $request->validate([
-            'csv_file' => 'required|file|max:5120', // Tối đa 5MB
-        ], [
-            'csv_file.required' => 'Vui lòng chọn tệp CSV cần tải lên.',
-            'csv_file.file' => 'Tệp tải lên không hợp lệ.',
-            'csv_file.max' => 'Dung lượng tệp không được vượt quá 5MB.',
-        ]);
+        $user = $request->user();
 
-        $file = $request->file('csv_file');
+        // Admin được nhập cho mọi streamer, Manager chỉ cho các streamer mình phụ trách
+        $allowedStreamerIds = $user->isAdmin()
+            ? StreamerProfile::pluck('id')->all()
+            : $user->managedStreamers()->pluck('id')->all();
 
-        // Kiểm tra phần mở rộng tệp
-        $ext = strtolower($file->getClientOriginalExtension());
-        if (!in_array($ext, ['csv', 'txt'])) {
-            return back()->with('error', 'Chỉ chấp nhận tệp tin có định dạng .csv hoặc .txt.');
-        }
+        $result = $csvService->importCsv($request->file('csv_file')->getRealPath(), $allowedStreamerIds);
 
-        $tempPath = $file->getRealPath();
-        $result = $csvService->importCsv($tempPath);
-
+        // Lỗi cấp tệp -> chỉ flash 'error' (không kèm import_errors để tránh hiển thị trùng)
         if (!$result['success']) {
-            return back()->with('error', $result['message'])->with('import_errors', $result['errors'] ?? []);
+            return back()->with('error', $result['message']);
         }
 
-        $msg = $result['message'];
-        return back()->with('success', $msg)->with('import_errors', $result['errors'] ?? []);
+        // Thành công -> flash 'success'; lỗi từng dòng (nếu có) -> chỉ flash 'import_errors'
+        $response = back()->with('success', $result['message']);
+
+        if (!empty($result['errors'])) {
+            $response->with('import_errors', $result['errors']);
+        }
+
+        return $response;
     }
 
     /**

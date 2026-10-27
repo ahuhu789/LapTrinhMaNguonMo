@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\StreamerProfile;
 use App\Models\Booking;
 use App\Models\StreamMetric;
-use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
@@ -21,10 +20,12 @@ class HomeController extends Controller
 
         // 2. Lấy top 6 streamer nổi bật nhất (theo lượt view trung bình)
         $featuredTalents = StreamerProfile::where('status', 'active')
-            ->with(['metrics', 'manager'])
-            ->get()
-            ->sortByDesc('avg_viewers')
-            ->take(6);
+            ->with('manager')
+            ->withViewerStats()
+            ->orderByDesc('avg_viewers_calc')
+            ->orderByDesc('id')
+            ->limit(6)
+            ->get();
 
         // 3. Danh mục độc quyền
         $categories = StreamerProfile::select('category')
