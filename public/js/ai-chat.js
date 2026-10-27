@@ -63,37 +63,95 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-            const response = await fetch('/ai/recommend', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                },
-                body: JSON.stringify({ message: text })
-            });
+            let response;
+            try {
+                response = await fetch('/ai/recommend', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ message: text })
+                });
+            } catch (networkError) {
+                console.error(networkError);
+                removeLoading(loadingId);
+                appendMessage('bot', 'Không thể kết nối đến máy chủ AI lúc này. Vui lòng kiểm tra mạng và thử lại sau ít giây.');
+                return;
+            }
 
+            let data = null;
+            try { data = await response.json(); } catch (e) { data = null; }
             removeLoading(loadingId);
 
             if (!response.ok) {
-                throw new Error('Lỗi kết nối máy chủ');
+                appendMessage('bot', errorMessageForResponse(response, data));
+                return;
             }
 
-            const data = await response.json();
-            if (data.success) {
+            if (data && data.success) {
                 appendMessage('bot', data.reply, data.matched_talents || []);
             } else {
                 appendMessage('bot', 'Xin lỗi, tôi chưa hiểu rõ yêu cầu. Bạn có thể nêu cụ thể thể loại game (CS2, LMHT...) hoặc ngân sách không?');
             }
         } catch (error) {
             removeLoading(loadingId);
-            appendMessage('bot', 'Không thể kết nối đến máy chủ AI lúc này. Vui lòng thử lại sau ít giây.');
+            appendMessage('bot', 'Đã có lỗi khi xử lý phản hồi từ trợ lý AI. Vui lòng thử lại sau ít giây.');
             console.error(error);
         } finally {
+            removeLoading(loadingId);
             setSubmitting(false);
             chatInput.focus();
         }
     });
+
+    // Map HTTP error statuses from /ai/recommend to friendly Vietnamese messages.
+    function errorMessageForResponse(response, data) {
+        switch (response.status) {
+            case 429: {
+                const wait = retryAfterText(response.headers.get('Retry-After'));
+                return 'Bạn gửi quá nhanh, vui lòng thử lại sau ' + (wait || 'ít phút') + '.';
+            }
+            case 419:
+                return 'Phiên làm việc đã hết hạn. Vui lòng tải lại trang (F5) rồi thử lại.';
+            case 401:
+                return 'Vui lòng đăng nhập để dùng trợ lý AI.';
+            case 422:
+                return firstValidationMessage(data) || 'Nội dung câu hỏi chưa hợp lệ. Vui lòng nhập lại (không để trống, không quá dài).';
+            default:
+                return 'Trợ lý AI đang gặp sự cố. Vui lòng thử lại sau ít giây.';
+        }
+    }
+
+    // Retry-After may be delta-seconds or an HTTP date.
+    function retryAfterText(header) {
+        if (!header) return '';
+        let seconds = Number(header);
+        if (!Number.isFinite(seconds)) {
+            const date = Date.parse(header);
+            if (Number.isNaN(date)) return '';
+            seconds = (date - Date.now()) / 1000;
+        }
+        seconds = Math.ceil(seconds);
+        if (seconds <= 0) return '';
+        if (seconds < 60) return seconds + ' giây';
+        return Math.ceil(seconds / 60) + ' phút';
+    }
+
+    function firstValidationMessage(data) {
+        if (data && data.errors && typeof data.errors === 'object') {
+            for (const key of Object.keys(data.errors)) {
+                const msgs = data.errors[key];
+                if (Array.isArray(msgs) && msgs.length) return String(msgs[0]);
+                if (typeof msgs === 'string' && msgs) return msgs;
+            }
+        }
+        if (data && typeof data.message === 'string' && data.message) return data.message;
+        return '';
+    }
 
     function setSubmitting(isSubmitting) {
         if (chatSubmit) chatSubmit.disabled = isSubmitting;
