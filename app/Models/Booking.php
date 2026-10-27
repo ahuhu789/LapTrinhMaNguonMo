@@ -4,13 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class Booking extends Model
 {
     use HasFactory;
 
     protected $table = 'bookings';
+
+    /** Trạng thái booking còn hiệu lực (chiếm lịch của talent & của client) */
+    public const ACTIVE_STATUSES = ['pending', 'reviewing', 'approved'];
+
+    /** Trạng thái cho phép phê duyệt */
+    public const APPROVABLE_STATUSES = ['pending', 'reviewing'];
+
+    /** Trạng thái cho phép Manager từ chối thủ công (từ chối tự động áp dụng cho pending & reviewing) */
+    public const REJECTABLE_STATUSES = ['pending'];
 
     protected $fillable = [
         'client_id',
@@ -52,6 +60,24 @@ class Booking extends Model
         return $this->hasOne(Schedule::class, 'reference_id');
     }
 
+    public function isApprovable(): bool
+    {
+        return in_array($this->status, self::APPROVABLE_STATUSES, true);
+    }
+
+    /**
+     * Alias đọc của cột reject_reason (lý do từ chối thủ công hoặc tự động).
+     */
+    public function getRejectionReasonAttribute(): ?string
+    {
+        return $this->reject_reason;
+    }
+
+    public function isRejectable(): bool
+    {
+        return in_array($this->status, self::REJECTABLE_STATUSES, true);
+    }
+
     public function getDurationHoursAttribute(): float
     {
         if ($this->start_time && $this->end_time) {
@@ -62,17 +88,17 @@ class Booking extends Model
 
     public function getFormattedBudgetAttribute(): string
     {
-        return number_format($this->budget, 0, ',', '.') . ' đ';
+        return number_format((float) $this->budget, 0, ',', '.') . ' đ';
     }
 
     public function getAgencyCommissionAttribute(): float
     {
-        return round($this->budget * ($this->commission_rate / 100), 2);
+        return round((float) $this->budget * ((float) $this->commission_rate / 100), 2);
     }
 
     public function getStreamerNetIncomeAttribute(): float
     {
-        return $this->budget - $this->agency_commission;
+        return round((float) $this->budget - $this->agency_commission, 2);
     }
 
     public function getStatusLabelAttribute(): string

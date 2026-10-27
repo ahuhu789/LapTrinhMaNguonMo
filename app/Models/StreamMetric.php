@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
 class StreamMetric extends Model
@@ -29,6 +31,18 @@ class StreamMetric extends Model
         'peak_viewers' => 'integer',
         'followers_gained' => 'integer',
     ];
+
+    /**
+     * Luôn lưu stream_date dạng 'Y-m-d' (không kèm giờ) để khóa unique
+     * (streamer_id, platform, stream_date) và updateOrCreate hoạt động nhất quán trên cả SQLite/MySQL.
+     * Khi đọc vẫn dùng cast 'date' (Carbon).
+     */
+    protected function streamDate(): Attribute
+    {
+        return Attribute::make(
+            set: fn ($value) => $value === null ? null : Carbon::parse($value)->toDateString(),
+        );
+    }
 
     public function streamer()
     {
