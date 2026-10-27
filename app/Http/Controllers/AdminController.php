@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateStreamerManagerRequest;
+use App\Http\Requests\UpdateUserRoleRequest;
 use App\Models\User;
 use App\Models\StreamerProfile;
 use App\Models\Booking;
@@ -108,16 +110,9 @@ class AdminController extends Controller
     /**
      * Thay đổi vai trò người dùng (Admin)
      */
-    public function updateUserRole(Request $request, $id)
+    public function updateUserRole(UpdateUserRoleRequest $request, User $user)
     {
-        $user = User::findOrFail($id);
-
-        $request->validate([
-            'role' => 'required|in:admin,manager,streamer,client',
-        ]);
-
-        $user->role = $request->role;
-        $user->save();
+        $user->update(['role' => $request->validated('role')]);
 
         // Nếu chuyển thành streamer mà chưa có profile thì tự tạo
         if ($user->role === 'streamer' && !$user->streamerProfile) {
@@ -147,15 +142,9 @@ class AdminController extends Controller
     /**
      * Cập nhật Manager phụ trách Streamer
      */
-    public function updateStreamerManager(Request $request, $streamerId)
+    public function updateStreamerManager(UpdateStreamerManagerRequest $request, StreamerProfile $streamer)
     {
-        $request->validate([
-            'manager_id' => 'nullable|exists:users,id',
-        ]);
-
-        $streamer = StreamerProfile::findOrFail($streamerId);
-        $streamer->manager_id = $request->manager_id;
-        $streamer->save();
+        $streamer->update(['manager_id' => $request->validated('manager_id')]);
 
         return back()->with('success', 'Đã phân bổ Streamer ' . $streamer->stage_name . ' cho Manager thành công.');
     }

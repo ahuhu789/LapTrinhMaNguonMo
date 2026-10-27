@@ -44,7 +44,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/bookings/check-collision', [BookingController::class, 'checkCollision'])
         ->middleware('throttle:30,1')
         ->name('bookings.check-collision');
-    Route::get('/bookings/{id}', [BookingController::class, 'show'])->name('bookings.show');
+    Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
 });
 
 // --- 4. Manager & Admin Routes (Quản lý vận hành) ---
@@ -52,8 +52,8 @@ Route::middleware(['auth', 'role:manager,admin'])->group(function () {
     Route::get('/manager/dashboard', [AdminController::class, 'managerDashboard'])->name('manager.dashboard');
     
     // Duyệt và Từ chối booking kèm kiểm tra xung đột thời gian
-    Route::post('/bookings/{id}/approve', [BookingController::class, 'approve'])->name('bookings.approve');
-    Route::post('/bookings/{id}/reject', [BookingController::class, 'reject'])->name('bookings.reject');
+    Route::post('/bookings/{booking}/approve', [BookingController::class, 'approve'])->name('bookings.approve');
+    Route::post('/bookings/{booking}/reject', [BookingController::class, 'reject'])->name('bookings.reject');
 
     // Quản lý KPI
     Route::get('/manager/kpis', [KpiController::class, 'index'])->name('manager.kpis');
@@ -78,7 +78,7 @@ Route::middleware(['auth', 'role:streamer'])->group(function () {
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'adminDashboard'])->name('admin.dashboard');
     Route::get('/admin/users', [AdminController::class, 'usersIndex'])->name('admin.users');
-    Route::post('/admin/users/{id}/role', [AdminController::class, 'updateUserRole'])->name('admin.users.role');
+    Route::post('/admin/users/{user}/role', [AdminController::class, 'updateUserRole'])->name('admin.users.role');
     Route::get('/admin/assign-streamers', [AdminController::class, 'assignStreamers'])->name('admin.assign');
-    Route::post('/admin/assign-streamers/{id}', [AdminController::class, 'updateStreamerManager'])->name('admin.assign.update');
+    Route::post('/admin/assign-streamers/{streamer}', [AdminController::class, 'updateStreamerManager'])->name('admin.assign.update');
 });

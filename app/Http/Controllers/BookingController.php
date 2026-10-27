@@ -3,14 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CheckCollisionRequest;
+use App\Http\Requests\RejectBookingRequest;
+use App\Http\Requests\StoreBookingRequest;
 use App\Models\Booking;
 use App\Models\StreamerProfile;
-use App\Models\Schedule;
 use App\Services\BookingCollisionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Carbon\Carbon;
 
 class BookingController extends Controller
 {
@@ -28,9 +28,10 @@ class BookingController extends Controller
         } elseif ($user->isManager()) {
             // Manager xem booking của các Streamer mình quản lý hoặc được gán
             $streamerIds = $user->managedStreamers()->pluck('id');
-            $bookings = $query->whereIn('streamer_id', $streamerIds)
-                ->orWhere('manager_id', $user->id)
-                ->paginate(15);
+            $bookings = $query->where(function ($q) use ($streamerIds, $user) {
+                $q->whereIn('streamer_id', $streamerIds)
+                  ->orWhere('manager_id', $user->id);
+            })->paginate(15);
         } elseif ($user->isStreamer()) {
             // Streamer chỉ xem booking của chính mình
             $profile = $user->streamerProfile;
@@ -63,25 +64,9 @@ class BookingController extends Controller
     /**
      * Xử lý gửi yêu cầu booking từ Client
      */
-    public function store(Request $request, BookingCollisionService $collisionService)
+    public function store(StoreBookingRequest $request, BookingCollisionService $collisionService)
     {
-        $validated = $request->validate([
-            'streamer_id' => 'required|exists:streamer_profiles,id',
-            'start_time' => 'required|date|after:now',
-            'end_time' => 'required|date|after:start_time',
-            'job_description' => 'required|string|min:10',
-            'budget' => 'required|numeric|min:100000',
-        ], [
-            'streamer_id.required' => 'Vui lòng chọn Streamer muốn hợp tác.',
-            'start_time.required' => 'Vui lòng chọn thời gian bắt đầu.',
-            'start_time.after' => 'Thời gian bắt đầu phải ở tương lai.',
-            'end_time.required' => 'Vui lòng chọn thời gian kết thúc.',
-            'end_time.after' => 'Thời gian kết thúc phải sau thời gian bắt đầu.',
-            'job_description.required' => 'Vui lòng mô tả chi tiết công việc hoặc kịch bản livestream.',
-            'job_description.min' => 'Mô tả công việc tối thiểu 10 ký tự.',
-            'budget.required' => 'Vui lòng nhập ngân sách dự kiến.',
-            'budget.min' => 'Ngân sách tối thiểu là 100.000 VNĐ.',
-        ]);
+        $validated = $request->validated();
 
         $streamer = StreamerProfile::findOrFail($validated['streamer_id']);
 
@@ -111,7 +96,7 @@ class BookingController extends Controller
             'status' => 'pending',
         ]);
 
-        return redirect()->route('bookings.show', $booking->id)
+        return redirect()->route('bookings.show', $booking)
             ->with('success', 'Yêu cầu booking của bạn đã được gửi tới Manager phụ trách để phê duyệt.');
     }
 
@@ -132,28 +117,13 @@ class BookingController extends Controller
     }
 
     /**
-     * Xem chi tiết một đơn booking (Kiểm tra IDOR chặt chẽ)
+     * Xem chi tiết một đơn booking (chống IDOR qua BookingPolicy@view)
      */
-    public function show($id, BookingCollisionService $collisionService)
+    public function show(Booking $booking, BookingCollisionService $collisionService)
     {
-        $booking = Booking::with(['client', 'streamer.user', 'manager', 'schedule'])->findOrFail($id);
-        $user = Auth::user();
+        $booking->load(['client', 'streamer.user', 'manager', 'schedule']);
 
-        // Kiểm tra quyền sở hữu (Chống lỗ hổng IDOR)
-        $isAuthorized = false;
-        if ($user->isAdmin()) {
-            $isAuthorized = true;
-        } elseif ($user->isManager() && ($booking->manager_id === $user->id || $booking->streamer->manager_id === $user->id)) {
-            $isAuthorized = true;
-        } elseif ($user->isStreamer() && $booking->streamer->user_id === $user->id) {
-            $isAuthorized = true;
-        } elseif ($user->isClient() && $booking->client_id === $user->id) {
-            $isAuthorized = true;
-        }
-
-        if (!$isAuthorized) {
-            abort(403, 'Bạn không có quyền truy cập hợp đồng booking này.');
-        }
+        $this->authorize('view', $booking);
 
         // Kiểm tra xem hiện tại có đang bị trùng với lịch nào không (để hiển thị cảnh báo cho Manager)
         $conflictInfo = null;
@@ -172,17 +142,13 @@ class BookingController extends Controller
     /**
      * Manager / Admin phê duyệt booking & tự động khóa lịch
      */
-    public function approve($id, BookingCollisionService $collisionService)
+    public function approve(Booking $booking, BookingCollisionService $collisionService)
     {
-        $booking = Booking::with('streamer')->findOrFail($id);
-        $user = Auth::user();
+        $booking->load('streamer');
 
-        // Kiểm tra quyền duyệt (Admin hoặc Manager phụ trách)
-        if (!$user->isAdmin() && $booking->streamer->manager_id !== $user->id && $booking->manager_id !== $user->id) {
-            abort(403, 'Bạn không được phân công quản lý Talent này.');
-        }
+        $this->authorize('approve', $booking);
 
-        $result = $collisionService->approveAndLockSchedule($booking, $user->id);
+        $result = $collisionService->approveAndLockSchedule($booking, Auth::id());
 
         if (!$result['success']) {
             return back()->with('error', $result['message']);
@@ -192,25 +158,12 @@ class BookingController extends Controller
     }
 
     /**
-     * Manager / Admin từ chối booking kèm lý do
+     * Manager / Admin từ chối booking kèm lý do (quyền kiểm tra trong RejectBookingRequest)
      */
-    public function reject(Request $request, $id, BookingCollisionService $collisionService)
+    public function reject(RejectBookingRequest $request, Booking $booking, BookingCollisionService $collisionService)
     {
-        $request->validate([
-            'reject_reason' => 'required|string|min:5|max:500',
-        ], [
-            'reject_reason.required' => 'Vui lòng cung cấp lý do từ chối để phản hồi đến khách hàng.',
-        ]);
+        $result = $collisionService->rejectBooking($booking, Auth::id(), $request->validated('reject_reason'));
 
-        $booking = Booking::with('streamer')->findOrFail($id);
-        $user = Auth::user();
-
-        if (!$user->isAdmin() && $booking->streamer->manager_id !== $user->id && $booking->manager_id !== $user->id) {
-            abort(403, 'Bạn không có quyền từ chối booking này.');
-        }
-
-        $result = $collisionService->rejectBooking($booking, $user->id, $request->reject_reason);
-
-        return back()->with('success', $result['message']);
+        return back()->with($result['success'] ? 'success' : 'error', $result['message']);
     }
 }

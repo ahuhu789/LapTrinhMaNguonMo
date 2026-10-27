@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\StreamMetric;
-use App\Models\StreamerProfile;
 use App\Models\Kpi;
 use App\Models\Booking;
 use Illuminate\Support\Facades\DB;
@@ -18,9 +17,11 @@ class CsvMetricsService
      * Parse và import file CSV báo cáo số liệu stream
      *
      * @param string $filePath Đường dẫn tuyệt đối tới file CSV
+     * @param array<int> $allowedStreamerIds Danh sách streamer_id người dùng hiện tại được phép nhập số liệu
+     *                                       (Manager: chỉ các streamer mình phụ trách; Admin: tất cả)
      * @return array Kết quả chi tiết quá trình xử lý
      */
-    public function importCsv(string $filePath): array
+    public function importCsv(string $filePath, array $allowedStreamerIds): array
     {
         if (!file_exists($filePath) || !is_readable($filePath)) {
             return [
@@ -77,8 +78,8 @@ class CsvMetricsService
         $errors = [];
         $affectedStreamerMonths = []; // Lưu lại danh sách ['streamer_id' => X, 'month_year' => 'YYYY-MM'] để tái tính KPI
 
-        // Lấy danh sách streamer_id hợp lệ trong hệ thống để tra cứu nhanh O(1)
-        $validStreamerIds = StreamerProfile::pluck('id')->flip()->toArray();
+        // Tập streamer_id được phép (tra cứu nhanh O(1))
+        $validStreamerIds = array_flip(array_map('intval', $allowedStreamerIds));
 
         DB::beginTransaction();
         try {
@@ -100,7 +101,7 @@ class CsvMetricsService
 
                 // Kiểm tra hợp lệ dữ liệu từng dòng
                 if (!isset($validStreamerIds[$streamerId])) {
-                    $errors[] = "Dòng $rowNumber: Streamer ID ($streamerId) không tồn tại.";
+                    $errors[] = "Dòng $rowNumber: Streamer ID ($streamerId) không tồn tại hoặc không thuộc quyền quản lý của bạn.";
                     continue;
                 }
 
