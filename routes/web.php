@@ -41,7 +41,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
     Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
     // Kiểm tra nhanh va chạm lịch trình (AJAX live validation) - chỉ trả về {has_conflict: bool}
-    Route::post('/bookings/check-collision', [BookingController::class, 'checkCollision'])->name('bookings.check-collision');
+    Route::post('/bookings/check-collision', [BookingController::class, 'checkCollision'])
+        ->middleware('throttle:30,1')
+        ->name('bookings.check-collision');
     Route::get('/bookings/{id}', [BookingController::class, 'show'])->name('bookings.show');
 });
 

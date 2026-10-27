@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class CheckCollisionRequest extends FormRequest
 {
@@ -31,5 +33,16 @@ class CheckCollisionRequest extends FormRequest
             'end_time.date' => 'Thời gian kết thúc không hợp lệ.',
             'end_time.after' => 'Thời gian kết thúc phải sau thời gian bắt đầu.',
         ];
+    }
+
+    /**
+     * Endpoint AJAX: luôn trả lỗi validation dạng JSON 422 (kể cả khi client không gửi Accept: application/json).
+     */
+    protected function failedValidation(Validator $validator): void
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => $validator->errors()->first(),
+            'errors' => $validator->errors(),
+        ], 422));
     }
 }
