@@ -69,7 +69,8 @@
                         class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary-500 text-sm font-bold text-slate-800">
                     <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-xs font-bold text-slate-400">VNĐ</span>
                 </div>
-                <p class="text-xs text-slate-400 mt-1">Đã bao gồm phí hoa hồng quản lý agency 15%.</p>
+                {{-- mcn.commission_rate is a percentage (e.g. 15.00 = 15%); default matches backend config/mcn.php --}}
+                <p class="text-xs text-slate-400 mt-1">Đã bao gồm phí hoa hồng quản lý agency {{ rtrim(rtrim(number_format((float) config('mcn.commission_rate', 15), 2, ',', '.'), '0'), ',') }}%.</p>
             </div>
 
             <!-- Campaign Brief -->

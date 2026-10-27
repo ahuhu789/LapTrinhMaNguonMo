@@ -132,7 +132,7 @@
                     <span class="font-black text-emerald-400 text-sm">{{ $booking->formatted_budget }}</span>
                 </div>
                 <div class="flex justify-between text-slate-400">
-                    <span>Hoa hồng Agency ({{ $booking->commission_rate }}%):</span>
+                    <span>Hoa hồng Agency ({{ rtrim(rtrim(number_format((float) ($booking->commission_rate ?? config('mcn.commission_rate', 15)), 2, ',', '.'), '0'), ',') }}%):</span>
                     <span>- {{ number_format($booking->agency_commission, 0, ',', '.') }} đ</span>
                 </div>
                 <div class="flex justify-between pt-2 border-t border-slate-800 font-bold text-slate-200">

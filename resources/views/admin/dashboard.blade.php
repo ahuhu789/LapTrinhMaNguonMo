@@ -45,7 +45,7 @@
                 <i class="fas fa-wallet"></i>
             </div>
             <div>
-                <span class="text-xs font-semibold text-slate-400 uppercase">Hoa Hồng Agency (15%)</span>
+                <span class="text-xs font-semibold text-slate-400 uppercase">Hoa Hồng Agency ({{ rtrim(rtrim(number_format((float) config('mcn.commission_rate', 15), 2, ',', '.'), '0'), ',') }}%)</span>
                 <div class="text-2xl font-black text-indigo-600">{{ number_format($stats['total_commission'], 0, ',', '.') }} đ</div>
                 <span class="text-[11px] text-indigo-600 font-semibold">Lợi nhuận gộp MCN</span>
             </div>
