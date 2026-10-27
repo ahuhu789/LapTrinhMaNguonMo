@@ -46,7 +46,7 @@
             </div>
             <div>
                 <span class="text-xs font-semibold text-slate-400 uppercase">Avg Viewers</span>
-                <div class="text-2xl font-black text-slate-900">{{ number_format($talent->avg_viewers) }}</div>
+                <div class="text-2xl font-black text-slate-900">{{ number_format((float) ($talent->avg_viewers_calc ?? $talent->avg_viewers ?? 0)) }}</div>
                 <span class="text-[11px] text-emerald-600 font-semibold"><i class="fas fa-arrow-trend-up mr-1"></i> Ổn định</span>
             </div>
         </div>
@@ -57,7 +57,7 @@
             </div>
             <div>
                 <span class="text-xs font-semibold text-slate-400 uppercase">Peak Viewers</span>
-                <div class="text-2xl font-black text-slate-900">{{ number_format($talent->peak_viewers) }}</div>
+                <div class="text-2xl font-black text-slate-900">{{ number_format((float) ($talent->peak_viewers_calc ?? $talent->peak_viewers ?? 0)) }}</div>
                 <span class="text-[11px] text-indigo-600 font-semibold">Kỷ lục cao nhất</span>
             </div>
         </div>
@@ -127,8 +127,8 @@
                                         </td>
                                         <td class="py-3 px-4">{{ $pb->sessions }} buổi</td>
                                         <td class="py-3 px-4 font-medium">{{ number_format($pb->total_hours, 1) }} giờ</td>
-                                        <td class="py-3 px-4 font-bold text-slate-800">{{ number_format($pb->avg_viewers) }}</td>
-                                        <td class="py-3 px-4 font-bold text-indigo-600">{{ number_format($pb->peak_viewers) }}</td>
+                                        <td class="py-3 px-4 font-bold text-slate-800">{{ number_format((float) ($pb->avg_viewers ?? 0)) }}</td>
+                                        <td class="py-3 px-4 font-bold text-indigo-600">{{ number_format((float) ($pb->peak_viewers ?? 0)) }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
