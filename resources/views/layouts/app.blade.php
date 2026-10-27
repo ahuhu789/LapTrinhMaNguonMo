@@ -10,6 +10,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            // Site has no dark theme; stop prefers-color-scheme from darkening
+            // components that ship dark: variants (e.g. Laravel's tailwind paginator).
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {

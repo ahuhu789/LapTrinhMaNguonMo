@@ -124,6 +124,13 @@
                 </div>
             @endforeach
         </div>
+
+        {{-- Pagination: only rendered when the controller returns a paginator (paginate(12)); a plain Collection still works --}}
+        @if($talents instanceof \Illuminate\Contracts\Pagination\Paginator && $talents->hasPages())
+            <div class="mt-8">
+                {{ $talents->withQueryString()->links() }}
+            </div>
+        @endif
     @endif
 </div>
 @endsection
