@@ -19,7 +19,9 @@ class CsvMetricsService
      * @param string $filePath Đường dẫn tuyệt đối tới file CSV
      * @param array<int> $allowedStreamerIds Danh sách streamer_id người dùng hiện tại được phép nhập số liệu
      *                                       (Manager: chỉ các streamer mình phụ trách; Admin: tất cả)
-     * @return array Kết quả chi tiết quá trình xử lý
+     * @return array{success: bool, message: string, imported_count: int, errors: array<string>}
+     *         Lỗi cấp tệp (không đọc được, sai cột, lỗi hệ thống): success=false, chỉ có 'message', 'errors' rỗng.
+     *         Lỗi từng dòng: success=true, chi tiết nằm trong 'errors'.
      */
     public function importCsv(string $filePath, array $allowedStreamerIds): array
     {
@@ -28,7 +30,7 @@ class CsvMetricsService
                 'success' => false,
                 'message' => 'Không thể đọc tệp CSV tải lên.',
                 'imported_count' => 0,
-                'errors' => ['Tệp tin không tồn tại hoặc không thể đọc.'],
+                'errors' => [],
             ];
         }
 
@@ -38,7 +40,7 @@ class CsvMetricsService
                 'success' => false,
                 'message' => 'Không thể mở tệp tin CSV.',
                 'imported_count' => 0,
-                'errors' => ['Lỗi mở luồng đọc file.'],
+                'errors' => [],
             ];
         }
 
@@ -48,9 +50,9 @@ class CsvMetricsService
             fclose($handle);
             return [
                 'success' => false,
-                'message' => 'Tệp CSV rỗng.',
+                'message' => 'Tệp CSV rỗng, không có dữ liệu.',
                 'imported_count' => 0,
-                'errors' => ['File không có dữ liệu.'],
+                'errors' => [],
             ];
         }
 
@@ -65,9 +67,10 @@ class CsvMetricsService
                 fclose($handle);
                 return [
                     'success' => false,
-                    'message' => 'Định dạng cột CSV không hợp lệ. Cột thiếu: ' . $col,
+                    'message' => 'Định dạng cột CSV không hợp lệ. Cột thiếu: ' . $col
+                        . '. Yêu cầu đầy đủ các cột: ' . implode(', ', $expectedColumns) . '.',
                     'imported_count' => 0,
-                    'errors' => ['Yêu cầu đầy đủ các cột: ' . implode(', ', $expectedColumns)],
+                    'errors' => [],
                 ];
             }
         }

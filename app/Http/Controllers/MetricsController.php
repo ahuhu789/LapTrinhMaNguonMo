@@ -44,12 +44,19 @@ class MetricsController extends Controller
 
         $result = $csvService->importCsv($request->file('csv_file')->getRealPath(), $allowedStreamerIds);
 
+        // Lỗi cấp tệp -> chỉ flash 'error' (không kèm import_errors để tránh hiển thị trùng)
         if (!$result['success']) {
-            return back()->with('error', $result['message'])->with('import_errors', $result['errors'] ?? []);
+            return back()->with('error', $result['message']);
         }
 
-        $msg = $result['message'];
-        return back()->with('success', $msg)->with('import_errors', $result['errors'] ?? []);
+        // Thành công -> flash 'success'; lỗi từng dòng (nếu có) -> chỉ flash 'import_errors'
+        $response = back()->with('success', $result['message']);
+
+        if (!empty($result['errors'])) {
+            $response->with('import_errors', $result['errors']);
+        }
+
+        return $response;
     }
 
     /**
