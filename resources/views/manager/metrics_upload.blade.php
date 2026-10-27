@@ -19,11 +19,18 @@
 
             <form action="{{ route('manager.metrics.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                 @csrf
-                <div class="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center hover:border-primary-500 transition cursor-pointer bg-slate-50/50">
+                <div class="border-2 border-dashed {{ $errors->has('csv_file') ? 'border-rose-400 bg-rose-50/40' : 'border-slate-300 bg-slate-50/50' }} rounded-2xl p-6 text-center hover:border-primary-500 transition cursor-pointer">
                     <i class="fas fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
                     <p class="text-xs font-semibold text-slate-700">Chọn tệp CSV từ máy tính của bạn</p>
                     <p class="text-[11px] text-slate-400 mt-1">Định dạng file .csv, tối đa 5MB</p>
-                    <input type="file" name="csv_file" accept=".csv,text/csv" required class="mt-3 block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100">
+                    <input type="file" name="csv_file" id="csv_file" accept=".csv,.txt,text/csv,text/plain" required
+                        @error('csv_file') aria-invalid="true" aria-describedby="csv_file_error" @enderror
+                        class="mt-3 block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100">
+                    @error('csv_file')
+                        <p id="csv_file_error" class="mt-2 text-xs font-semibold text-rose-600 flex items-center justify-center">
+                            <i class="fas fa-circle-exclamation mr-1.5"></i>{{ $message }}
+                        </p>
+                    @enderror
                 </div>
 
                 <div class="flex items-center justify-between pt-2">
@@ -62,13 +69,17 @@
     </div>
 
     <!-- Error Logs (if any occurred during CSV parsing) -->
-    @if(session('import_errors') && count(session('import_errors')) > 0)
-        <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 text-rose-800">
+    @php
+        // import_errors: array of row-level messages (rows skipped, e.g. streamer not managed by you)
+        $importErrors = array_values(array_filter((array) session('import_errors', []), fn ($e) => is_scalar($e) && $e !== ''));
+    @endphp
+    @if(count($importErrors) > 0)
+        <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 text-rose-800" role="alert">
             <h4 class="font-bold text-xs uppercase tracking-wider mb-2 flex items-center">
-                <i class="fas fa-triangle-exclamation mr-1.5 text-rose-600"></i> Cảnh báo các dòng không hợp lệ:
+                <i class="fas fa-triangle-exclamation mr-1.5 text-rose-600"></i> Cảnh báo các dòng không hợp lệ ({{ count($importErrors) }}):
             </h4>
-            <ul class="list-disc pl-5 text-xs space-y-1">
-                @foreach(session('import_errors') as $err)
+            <ul class="list-disc pl-5 text-xs space-y-1 max-h-64 overflow-y-auto">
+                @foreach($importErrors as $err)
                     <li>{{ $err }}</li>
                 @endforeach
             </ul>
