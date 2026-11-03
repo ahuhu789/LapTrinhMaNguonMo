@@ -144,7 +144,15 @@
                     <span>Biểu Đồ Lượng Viewers Các Buổi Gần Nhất</span>
                 </h3>
                 <div class="h-64">
+                    @if($recentMetrics->isEmpty())
+                    <div class="h-full flex flex-col items-center justify-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl" data-chart-empty>
+                        <i class="fas fa-chart-line text-2xl mb-2"></i>
+                        <p class="font-semibold">Chưa có dữ liệu</p>
+                        <p class="text-[11px] mt-0.5">Số liệu sẽ hiển thị sau khi Manager nhập CSV các buổi live.</p>
+                    </div>
+                    @else
                     <canvas id="viewerTrendChart"></canvas>
+                    @endif
                 </div>
             </div>
         </div>
@@ -226,11 +234,11 @@ document.addEventListener('DOMContentLoaded', function () {
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: rawDates.length > 0 ? rawDates : ['Buổi 1', 'Buổi 2', 'Buổi 3', 'Buổi 4', 'Buổi 5'],
+            labels: rawDates,
             datasets: [
                 {
                     label: 'Peak Viewers',
-                    data: rawPeak.length > 0 ? rawPeak : [15000, 18000, 16500, 22000, 19500],
+                    data: rawPeak,
                     borderColor: '#6366f1',
                     backgroundColor: 'rgba(99, 102, 241, 0.1)',
                     fill: true,
@@ -239,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 {
                     label: 'Average Viewers',
-                    data: rawAvg.length > 0 ? rawAvg : [11000, 12500, 11800, 14000, 13200],
+                    data: rawAvg,
                     borderColor: '#10b981',
                     backgroundColor: 'transparent',
                     borderWidth: 2,
