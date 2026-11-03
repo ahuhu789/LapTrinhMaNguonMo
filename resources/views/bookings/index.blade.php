@@ -26,21 +26,21 @@
             </div>
         @else
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
+                <table class="w-full min-w-[900px] text-left text-sm">
                     <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[11px] font-bold">
                         <tr>
                             <th class="py-3 px-4">Mã #</th>
                             <th class="py-3 px-4">Khách Hàng (Client)</th>
                             <th class="py-3 px-4">Talent Streamer</th>
                             <th class="py-3 px-4">Thời Gian Livestream</th>
-                            <th class="py-3 px-4">Tổng Ngân Sách</th>
-                            <th class="py-3 px-4">Trạng Thái</th>
-                            <th class="py-3 px-4 text-right">Thao Tác</th>
+                            <th class="py-3 px-4 whitespace-nowrap">Tổng Ngân Sách</th>
+                            <th class="py-3 px-4 whitespace-nowrap">Trạng Thái</th>
+                            <th class="py-3 px-4 text-right whitespace-nowrap w-px">Thao Tác</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @foreach($bookings as $b)
-                            <tr class="hover:bg-slate-50/60 transition">
+                            <tr class="hover:bg-slate-50/60 transition [&>td]:align-middle">
                                 <td class="py-3.5 px-4 font-mono font-bold text-slate-700">#{{ $b->id }}</td>
                                 <td class="py-3.5 px-4">
                                     <div class="font-semibold text-slate-800">{{ $b->client->name }}</div>
@@ -65,9 +65,9 @@
                                 <td class="py-3.5 px-4">
                                     <x-booking-status :status="$b->status" />
                                 </td>
-                                <td class="py-3.5 px-4 text-right space-x-2">
-                                    <a href="{{ route('bookings.show', $b->id) }}" class="inline-block px-3 py-1.5 rounded-lg border border-slate-300 hover:border-primary-500 hover:text-primary-600 font-semibold text-xs transition">
-                                        Chi Tiết
+                                <td class="py-3.5 px-4 text-right whitespace-nowrap w-px">
+                                    <a href="{{ route('bookings.show', $b->id) }}" class="inline-flex items-center justify-center gap-1.5 whitespace-nowrap leading-none px-3 py-1.5 rounded-lg border border-slate-300 hover:border-primary-500 hover:text-primary-600 font-semibold text-xs transition">
+                                        <i class="fas fa-eye text-[11px]"></i><span>Chi Tiết</span>
                                     </a>
                                 </td>
                             </tr>

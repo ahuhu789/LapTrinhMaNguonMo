@@ -31,11 +31,11 @@
         </div>
 
         <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Mức Giá Booking Tham Khảo (₫ / giờ) <span class="text-rose-500">*</span></label>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Mức Giá Booking Tham Khảo (đ / giờ) <span class="text-rose-500">*</span></label>
             <div class="relative">
-                <input type="number" name="rate_per_hour" value="{{ old('rate_per_hour', $profile->rate_per_hour) }}" min="100000" step="50000" required
+                <input type="number" name="rate_per_hour" value="{{ old('rate_per_hour', is_numeric($profile->rate_per_hour) ? (int) round((float) $profile->rate_per_hour) : $profile->rate_per_hour) }}" min="100000" step="50000" required
                     class="w-full text-xs px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
-                <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-semibold text-slate-400">₫/giờ</span>
+                <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-semibold text-slate-400">đ/giờ</span>
             </div>
         </div>
 
@@ -48,13 +48,13 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">URL Ảnh Đại Diện (Avatar)</label>
-                <input type="url" name="avatar_url" value="{{ old('avatar_url', $profile->avatar_url) }}" placeholder="https://..."
+                <input type="text" inputmode="url" pattern="(https?://\S+|/\S*)" title="URL http(s) hoặc đường dẫn bắt đầu bằng /" name="avatar_url" value="{{ old('avatar_url', $profile->avatar_url) }}" placeholder="https://..."
                     class="w-full text-xs px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500">
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">URL Ảnh Bìa (Banner)</label>
-                <input type="url" name="banner_url" value="{{ old('banner_url', $profile->banner_url) }}" placeholder="https://..."
+                <input type="text" inputmode="url" pattern="(https?://\S+|/\S*)" title="URL http(s) hoặc đường dẫn bắt đầu bằng /" name="banner_url" value="{{ old('banner_url', $profile->banner_url) }}" placeholder="https://..."
                     class="w-full text-xs px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500">
             </div>
         </div>

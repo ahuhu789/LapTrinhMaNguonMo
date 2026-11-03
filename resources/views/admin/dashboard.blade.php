@@ -85,8 +85,8 @@
                                 <td class="py-3 px-4">
                                     <x-booking-status :status="$rb->status" size="sm" />
                                 </td>
-                                <td class="py-3 px-4 text-right">
-                                    <a href="{{ route('bookings.show', $rb->id) }}" class="text-primary-600 hover:underline font-bold">
+                                <td class="py-3 px-4 text-right whitespace-nowrap w-px align-middle">
+                                    <a href="{{ route('bookings.show', $rb->id) }}" class="inline-flex items-center justify-center gap-1.5 whitespace-nowrap leading-none text-primary-600 hover:underline font-bold">
                                         Xem
                                     </a>
                                 </td>

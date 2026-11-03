@@ -106,6 +106,38 @@ class SecurityAndIntegrationTest extends TestCase
             ->assertSessionHasErrors(['category' => 'Thể loại không hợp lệ.']);
     }
 
+    public function test_profile_update_accepts_integer_rate_and_relative_image_paths(): void
+    {
+        $profile = StreamerProfile::factory()->create(['rate_per_hour' => 5000000]);
+
+        $this->actingAs($profile->user)->get(route('streamer.profile'))
+            ->assertOk()
+            ->assertSee('value="5000000"', false)
+            ->assertDontSee('5000000.00');
+
+        $this->actingAs($profile->user)
+            ->post(route('streamer.profile.update'), [
+                'stage_name' => 'New Name',
+                'category' => config('mcn.categories')[0],
+                'rate_per_hour' => '5500000',
+                'avatar_url' => '/images/streamers/domixi.jpg',
+                'banner_url' => 'https://example.com/banner.jpg',
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertEquals(5500000, (float) $profile->fresh()->rate_per_hour);
+        $this->assertSame('/images/streamers/domixi.jpg', $profile->fresh()->avatar_url);
+
+        $this->actingAs($profile->user)
+            ->post(route('streamer.profile.update'), [
+                'stage_name' => 'New Name',
+                'category' => config('mcn.categories')[0],
+                'rate_per_hour' => 600000,
+                'avatar_url' => 'javascript:alert(1)',
+            ])
+            ->assertSessionHasErrors('avatar_url');
+    }
+
     public function test_gemini_key_is_sent_as_header_not_query_string(): void
     {
         config([

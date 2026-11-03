@@ -96,7 +96,7 @@
                                 <td class="py-3 px-4 text-slate-700 font-medium"><x-datetime :value="$s->end_time" /></td>
                                 <td class="py-3 px-4 text-right">
                                     @if($s->reference_id)
-                                        <a href="{{ route('bookings.show', $s->reference_id) }}" class="text-primary-600 font-bold hover:underline">
+                                        <a href="{{ route('bookings.show', $s->reference_id) }}" class="inline-flex items-center justify-center gap-1.5 whitespace-nowrap leading-none text-primary-600 font-bold hover:underline">
                                             Hợp đồng #{{ $s->reference_id }}
                                         </a>
                                     @else
