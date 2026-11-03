@@ -19,8 +19,9 @@ class UpdateStreamerProfileRequest extends FormRequest
             'category' => ['required', 'string', Rule::in(config('mcn.categories'))],
             'bio' => ['nullable', 'string', 'max:2000'],
             'rate_per_hour' => ['required', 'numeric', 'min:100000'],
-            'avatar_url' => ['nullable', 'url', 'max:255'],
-            'banner_url' => ['nullable', 'url', 'max:255'],
+            // Cho phép URL http(s) hoặc đường dẫn nội bộ bắt đầu bằng '/' (ảnh seed: /images/streamers/...)
+            'avatar_url' => ['nullable', 'string', 'max:255', 'regex:/^(https?:\/\/[^\s]+|\/[^\s]*)$/'],
+            'banner_url' => ['nullable', 'string', 'max:255', 'regex:/^(https?:\/\/[^\s]+|\/[^\s]*)$/'],
         ];
     }
 
@@ -37,10 +38,10 @@ class UpdateStreamerProfileRequest extends FormRequest
             'bio.max' => 'Giới thiệu tối đa 2000 ký tự.',
             'rate_per_hour.required' => 'Vui lòng nhập giá booking theo giờ.',
             'rate_per_hour.numeric' => 'Giá booking phải là số.',
-            'rate_per_hour.min' => 'Giá tối thiểu là 100.000 VNĐ/giờ.',
-            'avatar_url.url' => 'Link ảnh đại diện không hợp lệ.',
+            'rate_per_hour.min' => 'Giá tối thiểu là 100.000đ/giờ.',
+            'avatar_url.regex' => 'Link ảnh đại diện phải là URL http(s) hoặc đường dẫn bắt đầu bằng /.',
             'avatar_url.max' => 'Link ảnh đại diện tối đa 255 ký tự.',
-            'banner_url.url' => 'Link ảnh bìa không hợp lệ.',
+            'banner_url.regex' => 'Link ảnh bìa phải là URL http(s) hoặc đường dẫn bắt đầu bằng /.',
             'banner_url.max' => 'Link ảnh bìa tối đa 255 ký tự.',
         ];
     }
