@@ -76,7 +76,7 @@
                     4. Tổng Ngân Sách Dự Kiến (đ) <span class="text-rose-500">*</span>
                 </label>
                 <div class="relative">
-                    <input type="number" name="budget" id="budget" value="{{ old('budget', '3000000') }}" min="100000" required
+                    <input type="number" name="budget" id="budget" value="{{ old('budget', '3000000') }}" min="0" required
                         placeholder="VD: 3000000"
                         class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary-500 text-sm font-bold text-slate-800">
                     <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-xs font-bold text-slate-400">đ</span>
@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
             refreshSubmit();
             if (typeof window.onCollisionData === 'function') window.onCollisionData(data);
             if (data && data.has_conflict === true) {
-                showAlert('conflict', 'Khung giờ này bị trùng với lịch của talent hoặc booking khác của bạn. Vui lòng chọn thời gian khác.');
+                showAlert('conflict', (data.conflict_message ? String(data.conflict_message) + ' ' : '') + 'Khung giờ này bị trùng với lịch của talent hoặc booking khác của bạn. Vui lòng chọn thời gian khác.');
             } else if (data && data.has_conflict === false) {
                 showAlert('ok', 'Khung giờ hoàn toàn khả dụng! Streamer đang trống lịch.');
             } else {
@@ -277,7 +277,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const useMinBtn = document.getElementById('budget-use-min');
     const pendingBox = document.getElementById('pending-warning');
     const pendingText = document.getElementById('pending-warning-text');
-    let serverMin = null; // min_budget from check-collision (if backend provides it)
+    // Server quote from check-collision (preferred); client calc is only a fallback.
+    let serverQuote = null; // {min, label, hours, rate}
     let currentMin = 0;
 
     const fmtMoney = (n) => Math.round(n).toLocaleString('de-DE') + 'đ';
@@ -289,10 +290,19 @@ document.addEventListener('DOMContentLoaded', function () {
         const s = parseLocal(startInput.value), e = parseLocal(endInput.value);
         const hours = (s && e && e > s) ? (e - s) / 3600000 : 0;
         currentMin = 0;
-        if (serverMin !== null && serverMin > 0) currentMin = serverMin;
-        else if (rate > 0 && hours > 0) currentMin = Math.ceil(hours * rate);
+        if (serverQuote && serverQuote.min > 0) {
+            currentMin = serverQuote.min;
+            const h = serverQuote.hours ?? hours, r = serverQuote.rate ?? rate;
+            minText.textContent = serverQuote.label
+                || ('Tối thiểu: ' + fmtMoney(currentMin) + ((h > 0 && r > 0) ? ' = ' + fmtHours(h) + ' giờ × ' + fmtMoney(r) + '/giờ' : ''));
+            minInfo.classList.remove('hidden');
+        } else if (rate > 0 && hours > 0) {
+            currentMin = Math.ceil(hours * rate);
+        }
 
-        if (currentMin > 0) {
+        if (serverQuote && serverQuote.min > 0) {
+            // label already set from server
+        } else if (currentMin > 0) {
             minText.textContent = (rate > 0 && hours > 0)
                 ? 'Tối thiểu: ' + fmtMoney(currentMin) + ' = ' + fmtHours(hours) + ' giờ × ' + fmtMoney(rate) + '/giờ'
                 : 'Tối thiểu: ' + fmtMoney(currentMin);
@@ -304,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const val = parseFloat(budgetInput.value);
         let msg = '';
         if (currentMin > 0 && !(val >= currentMin)) msg = 'Ngân sách thấp hơn mức tối thiểu ' + fmtMoney(currentMin) + '. Vui lòng tăng ngân sách.';
-        else if (budgetInput.value !== '' && val < 100000) msg = 'Ngân sách tối thiểu là 100.000đ.';
+        else if (budgetInput.value !== '' && !(val >= 0)) msg = 'Ngân sách không hợp lệ.';
         formErrors.budget = !!msg;
         budgetError.textContent = msg;
         budgetError.classList.toggle('hidden', !msg);
@@ -318,27 +328,32 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     budgetInput.addEventListener('input', validateBudget);
     [streamerSelect, startInput, endInput].forEach(function (el) {
-        el.addEventListener('change', function () { serverMin = null; pendingBox.classList.add('hidden'); validateBudget(); });
+        el.addEventListener('change', function () { serverQuote = null; pendingBox.classList.add('hidden'); validateBudget(); });
     });
 
     window.onCollisionData = function (data) {
         data = data || {};
-        const mb = parseFloat(data.min_budget);
-        serverMin = isFinite(mb) && mb > 0 ? mb : null;
-        let count = 0;
-        if (typeof data.pending_count === 'number') count = data.pending_count;
-        else if (Array.isArray(data.pending)) count = data.pending.length;
-        else if (typeof data.pending === 'number') count = data.pending;
-        else if (data.has_pending === true || data.pending === true) count = -1;
-        if (count !== 0 && data.has_conflict !== true) {
-            pendingText.textContent = count > 0
-                ? 'Lưu ý: đã có ' + count + ' yêu cầu booking khác đang chờ duyệt trong khung giờ này. Bạn vẫn có thể gửi, Manager sẽ xét duyệt.'
-                : 'Lưu ý: đã có yêu cầu booking khác đang chờ duyệt trong khung giờ này. Bạn vẫn có thể gửi, Manager sẽ xét duyệt.';
-            pendingBox.classList.remove('hidden');
-        } else {
-            pendingBox.classList.add('hidden');
-        }
-        validateBudget();
+        const num = (v) => { const n = parseFloat(v); return isFinite(n) ? n : null; };
+        const mb = num(data.min_budget);
+        serverQuote = (mb !== null && mb > 0) ? {
+            min: mb,
+            label: typeof data.min_budget_label === 'string' && data.min_budget_label ? data.min_budget_label : '',
+            hours: num(data.hours),
+            rate: num(data.rate_per_hour),
+        } : null;
+
+        // Soft warnings (do not block): prefer server warnings[], fallback to pending_count
+        let msgs = Array.isArray(data.warnings) ? data.warnings.filter((w) => typeof w === 'string' && w) : [];
+        const pc = num(data.pending_count) || 0;
+        if (!msgs.length && pc > 0) msgs = ['Có ' + pc + ' đơn khác đang chờ duyệt khung giờ này.'];
+        pendingText.textContent = '';
+        msgs.forEach(function (m, i) {
+            if (i) pendingText.appendChild(document.createElement('br'));
+            pendingText.appendChild(document.createTextNode(m));
+        });
+        if (msgs.length) pendingText.appendChild(document.createTextNode(' Bạn vẫn có thể gửi yêu cầu.'));
+        pendingBox.classList.toggle('hidden', msgs.length === 0);
+    validateBudget();
     };
     validateBudget();
     // Prefilled form (e.g. ?streamer_id=…, or old() input after a failed submit)
