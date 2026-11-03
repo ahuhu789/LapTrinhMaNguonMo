@@ -3,8 +3,6 @@
 namespace App\Services;
 
 use App\Models\StreamMetric;
-use App\Models\Kpi;
-use App\Models\Booking;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Exception;
@@ -210,56 +208,12 @@ class CsvMetricsService
     }
 
     /**
-     * Tự động tính toán tổng số giờ và doanh thu để cập nhật KPI
+     * Tính lại KPI (giờ stream, doanh thu booking completed, trạng thái) - ủy quyền cho KpiService.
      *
-     * @param array $targets Mảng các cặp ['streamer_id' => X, 'month_year' => 'YYYY-MM']
-     * @return int Số lượng bản ghi KPI đã được cập nhật
+     * @param array<int, array{streamer_id: int, month_year: string}> $targets
      */
     public function aggregateKpis(array $targets): int
     {
-        $updatedCount = 0;
-
-        foreach ($targets as $item) {
-            $streamerId = $item['streamer_id'];
-            $monthYear = $item['month_year'];
-
-            $startOfMonth = Carbon::parse($monthYear . '-01')->startOfMonth()->toDateString();
-            $endOfMonth = Carbon::parse($monthYear . '-01')->endOfMonth()->toDateString();
-            $startOfDateTime = Carbon::parse($monthYear . '-01')->startOfMonth()->toDateTimeString();
-            $endOfDateTime = Carbon::parse($monthYear . '-01')->endOfMonth()->toDateTimeString();
-
-            // 1. Tính tổng số giờ stream trong tháng
-            $totalHours = StreamMetric::where('streamer_id', $streamerId)
-                ->whereBetween('stream_date', [$startOfMonth, $endOfMonth])
-                ->sum('duration_hours');
-
-            // 2. Tính tổng doanh thu từ các booking đã duyệt/hoàn thành trong tháng
-            $totalRevenue = Booking::where('streamer_id', $streamerId)
-                ->whereIn('status', ['approved', 'completed'])
-                ->whereBetween('start_time', [$startOfDateTime, $endOfDateTime])
-                ->sum('budget');
-
-            // 3. Tìm hoặc tạo bản ghi KPI tương ứng
-            $kpi = Kpi::where('streamer_id', $streamerId)
-                ->where('month_year', $monthYear)
-                ->first();
-
-            if ($kpi) {
-                $kpi->achieved_hours = (float) $totalHours;
-                $kpi->achieved_revenue = (float) $totalRevenue;
-
-                // Xác định trạng thái
-                if ($kpi->achieved_hours >= $kpi->target_hours && $kpi->achieved_revenue >= $kpi->target_revenue) {
-                    $kpi->status = 'achieved';
-                } else {
-                    $kpi->status = 'in_progress';
-                }
-
-                $kpi->save();
-                $updatedCount++;
-            }
-        }
-
-        return $updatedCount;
+        return app(KpiService::class)->recomputeMany($targets);
     }
 }

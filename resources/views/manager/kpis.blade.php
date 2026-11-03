@@ -13,7 +13,7 @@
         </div>
 
         <form action="{{ route('manager.kpis') }}" method="GET" class="flex items-center space-x-2">
-            <input type="month" name="month" value="{{ $selectedMonth }}" 
+            <input type="text" data-datepicker="month" autocomplete="off" name="month" value="{{ $selectedMonth }}" 
                 class="text-xs border border-slate-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-primary-500 font-bold text-slate-700">
             <button type="submit" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold">
                 Xem Tháng
@@ -26,14 +26,19 @@
         <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
             <h3 class="text-sm font-bold text-slate-900 mb-4 flex items-center space-x-2">
                 <i class="fas fa-bullseye text-primary-600"></i>
-                <span>Thiết Lập / Cập Nhật Mục Tiêu KPI Mới</span>
+                <span>Thiết lập mục tiêu</span>
             </h3>
+
+            <p class="text-xs text-slate-500 mb-4 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                <i class="fas fa-circle-info text-primary-500 mr-1"></i>
+                Giờ live tính từ số liệu live; doanh thu = tổng booking đã hoàn thành trong tháng; Hoàn thành khi cả 2 đạt 100%.
+            </p>
 
             <form action="{{ route('manager.kpis.store') }}" method="POST" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 @csrf
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Chọn Streamer</label>
-                    <select name="streamer_id" required class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-primary-500">
+                    <label for="kpi_streamer_id" class="block text-xs font-semibold text-slate-600 mb-1">Streamer</label>
+                    <select name="streamer_id" id="kpi_streamer_id" required class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-primary-500">
                         <option value="">-- Chọn streamer --</option>
                         @foreach($streamers as $st)
                             <option value="{{ $st->id }}">{{ $st->stage_name }} ({{ $st->category }})</option>
@@ -42,20 +47,20 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Tháng Áp Dụng</label>
-                    <input type="month" name="month_year" value="{{ $selectedMonth }}" required
+                    <label for="kpi_month_year" class="block text-xs font-semibold text-slate-600 mb-1">Tháng</label>
+                    <input type="text" data-datepicker="month" autocomplete="off" name="month_year" id="kpi_month_year" value="{{ $selectedMonth }}" required
                         class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-primary-500">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Chỉ tiêu giờ (Giờ)</label>
-                    <input type="number" name="target_hours" value="60" min="1" step="0.5" required
+                    <label for="kpi_target_hours" class="block text-xs font-semibold text-slate-600 mb-1">Chỉ tiêu giờ live/tháng (giờ)</label>
+                    <input type="number" name="target_hours" id="kpi_target_hours" value="60" min="1" step="0.5" required
                         class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-primary-500">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Doanh thu mục tiêu (đ)</label>
-                    <input type="number" name="target_revenue" value="20000000" min="0" step="1000000" required
+                    <label for="kpi_target_revenue" class="block text-xs font-semibold text-slate-600 mb-1">Doanh thu mục tiêu/tháng (đ)</label>
+                    <input type="number" name="target_revenue" id="kpi_target_revenue" value="20000000" min="0" required
                         class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-primary-500 font-bold">
                 </div>
 
@@ -108,7 +113,7 @@
                                         <div class="w-24 bg-slate-200 rounded-full h-2 overflow-hidden">
                                             <div class="bg-primary-600 h-2 rounded-full" style="width: {{ $kpi->hours_progress_percentage }}%"></div>
                                         </div>
-                                        <span class="font-bold text-slate-700">{{ $kpi->hours_progress_percentage }}%</span>
+                                        <span class="font-bold text-slate-700">{{ $kpi->hours_progress_raw }}%</span>
                                     </div>
                                 </td>
                                 <td class="py-3 px-4">
@@ -120,7 +125,7 @@
                                         <div class="w-24 bg-slate-200 rounded-full h-2 overflow-hidden">
                                             <div class="bg-emerald-500 h-2 rounded-full" style="width: {{ $kpi->revenue_progress_percentage }}%"></div>
                                         </div>
-                                        <span class="font-bold text-slate-700">{{ $kpi->revenue_progress_percentage }}%</span>
+                                        <span class="font-bold text-slate-700">{{ $kpi->revenue_progress_raw }}%</span>
                                     </div>
                                 </td>
                                 <td class="py-3 px-4">

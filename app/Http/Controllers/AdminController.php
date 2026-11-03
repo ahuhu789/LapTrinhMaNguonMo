@@ -111,10 +111,9 @@ class AdminController extends Controller
     {
         $user->update(['role' => $request->validated('role')]);
 
-        // Nếu chuyển thành streamer mà chưa có profile thì tự tạo
-        if ($user->role === 'streamer' && !$user->streamerProfile) {
-            StreamerProfile::create([
-                'user_id' => $user->id,
+        // Chuyển thành streamer: tạo hồ sơ RỖNG nếu chưa có (không metrics, chỉ số hiển thị = 0 / "Chưa có dữ liệu")
+        if ($user->role === 'streamer') {
+            $user->streamerProfile()->firstOrCreate([], [
                 'stage_name' => $user->name,
                 'category' => config('mcn.default_category'),
                 'rate_per_hour' => config('mcn.default_rate_per_hour'),

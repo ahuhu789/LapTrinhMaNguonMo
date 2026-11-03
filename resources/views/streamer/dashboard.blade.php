@@ -119,7 +119,15 @@
                 <span>Lượng Người Xem Livestream Gần Đây</span>
             </h3>
             <div class="h-64">
-                <canvas id="streamerTrendChart"></canvas>
+                @if($chartMetrics->isEmpty())
+                    <div class="h-full flex flex-col items-center justify-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl" data-chart-empty>
+                        <i class="fas fa-chart-line text-2xl mb-2"></i>
+                        <p class="font-semibold">Chưa có dữ liệu</p>
+                        <p class="text-[11px] mt-0.5">Số liệu sẽ hiển thị sau khi Manager nhập CSV các buổi live.</p>
+                    </div>
+                    @else
+                    <canvas id="streamerTrendChart"></canvas>
+                    @endif
             </div>
         </div>
     </div>
@@ -138,10 +146,10 @@ document.addEventListener('DOMContentLoaded', function () {
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: rawDates.length > 0 ? rawDates : ['Ngày 1', 'Ngày 2', 'Ngày 3', 'Ngày 4', 'Ngày 5'],
+            labels: rawDates,
             datasets: [{
                 label: 'Avg Viewers',
-                data: rawAvg.length > 0 ? rawAvg : [10000, 11500, 12000, 14500, 13800],
+                data: rawAvg,
                 borderColor: '#10b981',
                 backgroundColor: 'rgba(16, 185, 129, 0.1)',
                 fill: true,

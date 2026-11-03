@@ -31,9 +31,9 @@
             <div class="bg-white/10 backdrop-blur-md border border-white/20 p-5 rounded-2xl text-center sm:text-right w-full sm:w-auto">
                 <span class="text-xs text-slate-300 uppercase font-semibold block">Mức giá Booking chuẩn</span>
                 <span class="text-2xl sm:text-3xl font-black text-emerald-400 block my-1"><x-money :amount="$talent->rate_per_hour" suffix="/giờ" /></span>
-                <a href="{{ route('bookings.create', ['streamer_id' => $talent->id]) }}" class="mt-2 inline-block w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white font-bold text-sm shadow-lg shadow-primary-600/30 transition">
+                <x-booking-link :streamer="$talent->id" class="mt-2 inline-block w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white font-bold text-sm shadow-lg shadow-primary-600/30 transition">
                     <i class="fas fa-calendar-check mr-1.5"></i> Đặt Lịch Booking Ngay
-                </a>
+                </x-booking-link>
             </div>
         </div>
     </div>
@@ -144,7 +144,15 @@
                     <span>Biểu Đồ Lượng Viewers Các Buổi Gần Nhất</span>
                 </h3>
                 <div class="h-64">
+                    @if($recentMetrics->isEmpty())
+                    <div class="h-full flex flex-col items-center justify-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl" data-chart-empty>
+                        <i class="fas fa-chart-line text-2xl mb-2"></i>
+                        <p class="font-semibold">Chưa có dữ liệu</p>
+                        <p class="text-[11px] mt-0.5">Số liệu sẽ hiển thị sau khi Manager nhập CSV các buổi live.</p>
+                    </div>
+                    @else
                     <canvas id="viewerTrendChart"></canvas>
+                    @endif
                 </div>
             </div>
         </div>
@@ -204,9 +212,9 @@
                     </li>
                 </ul>
 
-                <a href="{{ route('bookings.create', ['streamer_id' => $talent->id]) }}" class="mt-5 block text-center w-full py-3 bg-white text-primary-900 font-black rounded-xl hover:bg-primary-50 transition shadow-sm text-sm">
+                <x-booking-link :streamer="$talent->id" class="mt-5 block text-center w-full py-3 bg-white text-primary-900 font-black rounded-xl hover:bg-primary-50 transition shadow-sm text-sm">
                     Gửi Yêu Cầu Booking
-                </a>
+                </x-booking-link>
             </div>
         </div>
     </div>
@@ -226,11 +234,11 @@ document.addEventListener('DOMContentLoaded', function () {
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: rawDates.length > 0 ? rawDates : ['Buổi 1', 'Buổi 2', 'Buổi 3', 'Buổi 4', 'Buổi 5'],
+            labels: rawDates,
             datasets: [
                 {
                     label: 'Peak Viewers',
-                    data: rawPeak.length > 0 ? rawPeak : [15000, 18000, 16500, 22000, 19500],
+                    data: rawPeak,
                     borderColor: '#6366f1',
                     backgroundColor: 'rgba(99, 102, 241, 0.1)',
                     fill: true,
@@ -239,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 {
                     label: 'Average Viewers',
-                    data: rawAvg.length > 0 ? rawAvg : [11000, 12500, 11800, 14000, 13200],
+                    data: rawAvg,
                     borderColor: '#10b981',
                     backgroundColor: 'transparent',
                     borderWidth: 2,

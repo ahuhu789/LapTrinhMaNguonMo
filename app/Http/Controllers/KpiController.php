@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreKpiRequest;
 use App\Models\Kpi;
 use App\Models\StreamerProfile;
+use App\Services\KpiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -36,7 +37,7 @@ class KpiController extends Controller
     /**
      * Thiết lập chỉ tiêu KPI cho Streamer (Dành cho Manager & Admin)
      */
-    public function store(StoreKpiRequest $request)
+    public function store(StoreKpiRequest $request, KpiService $kpiService)
     {
         $validated = $request->validated();
         $streamer = StreamerProfile::findOrFail($validated['streamer_id']);
@@ -44,7 +45,7 @@ class KpiController extends Controller
         // IDOR Check: Manager chỉ được đặt KPI cho Streamer mình quản lý
         $this->authorize('manage', $streamer);
 
-        Kpi::updateOrCreate(
+        $kpi = Kpi::updateOrCreate(
             [
                 'streamer_id' => $validated['streamer_id'],
                 'month_year' => $validated['month_year'],
@@ -55,6 +56,9 @@ class KpiController extends Controller
                 'target_avg_viewers' => $validated['target_avg_viewers'],
             ]
         );
+
+        // Tính lại thực đạt + trạng thái ngay theo chỉ tiêu mới (tránh status cũ bị "kẹt")
+        $kpiService->recompute($kpi->streamer_id, $kpi->month_year);
 
         return back()->with('success', 'Đã thiết lập chỉ tiêu KPI tháng ' . $validated['month_year'] . ' cho streamer ' . $streamer->stage_name . ' thành công.');
     }

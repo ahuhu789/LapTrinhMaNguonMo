@@ -63,8 +63,8 @@ class BookingApprovalConflictTest extends TestCase
         $this->assertSame('approved', $first->fresh()->status);
         $this->assertSame('rejected', $second->fresh()->status);
         $this->assertSame(
-            'Tự động từ chối: Xung đột với lịch đã được duyệt ('
-                . $first->start_time->format('H:i d/m/Y') . ' – ' . $first->end_time->format('H:i d/m/Y') . ')',
+            'Tự động từ chối: khung giờ đã được duyệt cho booking khác ('
+                . $first->start_time->format('d/m/Y H:i') . '–' . $first->end_time->format('H:i') . ')',
             $second->fresh()->reject_reason
         );
         $this->assertSame(1, Schedule::where('streamer_id', $streamer->id)->count());

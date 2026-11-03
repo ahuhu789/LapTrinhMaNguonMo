@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 /**
  * Quy tắc đặt lịch:
- *  1. cùng talent không có 2 lịch chồng nhau (schedules + booking pending/reviewing/approved)
+ *  1. cùng talent: lịch đã khóa / booking đã duyệt chặn cứng; booking pending của client khác chỉ là cảnh báo mềm
  *  2. cùng client không có 2 booking còn hiệu lực chồng nhau
  *  3. vi phạm -> lưu với status rejected + lý do; duyệt -> tự động từ chối booking chồng giờ
  */
@@ -57,7 +57,7 @@ class BookingRulesTest extends TestCase
             'start_time' => $this->at($from),
             'end_time' => $this->at($to),
             'job_description' => 'Livestream giới thiệu sản phẩm mới',
-            'budget' => 2000000,
+            'budget' => 100000000,
         ], $extra));
     }
 
@@ -101,7 +101,7 @@ class BookingRulesTest extends TestCase
             'start_time' => '2026-11-05T07:00:00Z', // = 14:00 giờ Việt Nam
             'end_time' => '2026-11-05T09:00:00Z',
             'job_description' => 'Livestream giới thiệu sản phẩm mới',
-            'budget' => 2000000,
+            'budget' => 100000000,
         ])->assertSessionHas('success');
 
         $this->assertSame('2026-11-05 14:00:00', $this->lastBooking()->getRawOriginal('start_time'));
@@ -125,20 +125,35 @@ class BookingRulesTest extends TestCase
         $this->assertStringNotContainsString('riêng tư', $booking->reject_reason);
     }
 
-    public function test_other_clients_pending_booking_blocks_talent_without_leaking_details(): void
+    public function test_other_clients_pending_booking_does_not_block_and_is_only_a_warning(): void
     {
         $other = User::factory()->client()->create(['name' => 'Khách Bí Mật']);
         $this->book($other, $this->talent, '14:00', '16:00', ['job_description' => 'Chiến dịch tuyệt mật XYZ']);
         $otherBooking = $this->lastBooking();
 
-        $this->book($this->client, $this->talent, '15:00', '17:00');
+        // client thứ 2 vẫn thấy cảnh báo mềm, không phải xung đột cứng
+        $this->actingAs($this->client)->postJson(route('bookings.check-collision'), [
+            'streamer_id' => $this->talent->id,
+            'start_time' => $this->at('15:00'),
+            'end_time' => $this->at('17:00'),
+        ])->assertOk()->assertJson([
+            'has_conflict' => false,
+            'pending_count' => 1,
+            'warnings' => ['Có 1 đơn khác đang chờ duyệt khung giờ này.'],
+        ]);
+
+        $this->book($this->client, $this->talent, '15:00', '17:00')->assertSessionHas('success');
         $mine = $this->lastBooking();
 
+        $this->assertSame('pending', $mine->status);
+        $this->assertSame('pending', $otherBooking->fresh()->status);
+        $this->assertNull($mine->reject_reason);
+
+        // duyệt booking của client kia -> booking của mình bị tự động từ chối, không lộ thông tin
+        $this->actingAs($this->manager)->post(route('bookings.approve', $otherBooking))->assertSessionHas('success');
+        $mine->refresh();
         $this->assertSame('rejected', $mine->status);
-        $this->assertSame(
-            'Tự động từ chối: Trùng với một booking khác đang chờ duyệt của talent từ 14:00 05/11/2026 đến 16:00 05/11/2026.',
-            $mine->reject_reason
-        );
+        $this->assertSame('Tự động từ chối: khung giờ đã được duyệt cho booking khác (05/11/2026 14:00–16:00)', $mine->reject_reason);
         foreach (['#' . $otherBooking->id, 'Khách Bí Mật', 'tuyệt mật', $other->email] as $secret) {
             $this->assertStringNotContainsString($secret, $mine->reject_reason);
         }
@@ -247,16 +262,16 @@ class BookingRulesTest extends TestCase
         $check = fn (User $u, StreamerProfile $t, string $a, string $b) => $this->actingAs($u)
             ->postJson(route('bookings.check-collision'), [
                 'streamer_id' => $t->id, 'start_time' => $this->at($a), 'end_time' => $this->at($b),
-            ])->assertOk()->json();
+            ])->assertOk()->json('has_conflict');
 
         // rule 1: talent bận (booking pending của chính client)
-        $this->assertSame(['has_conflict' => true], $check($this->client, $this->talent, '15:00', '17:00'));
+        $this->assertTrue($check($this->client, $this->talent, '15:00', '17:00'));
         // rule 2: cùng client, khác talent
-        $this->assertSame(['has_conflict' => true], $check($this->client, $otherTalent, '15:00', '17:00'));
+        $this->assertTrue($check($this->client, $otherTalent, '15:00', '17:00'));
         // client khác, talent khác -> trống
-        $this->assertSame(['has_conflict' => false], $check(User::factory()->client()->create(), $otherTalent, '15:00', '17:00'));
+        $this->assertFalse($check(User::factory()->client()->create(), $otherTalent, '15:00', '17:00'));
         // chạm mép -> trống
-        $this->assertSame(['has_conflict' => false], $check($this->client, $this->talent, '16:00', '17:00'));
+        $this->assertFalse($check($this->client, $this->talent, '16:00', '17:00'));
     }
 
     // ---------------------------------------------------------------- phê duyệt
@@ -281,7 +296,7 @@ class BookingRulesTest extends TestCase
         $this->assertSame('approved', $target->fresh()->status);
         foreach ([$overlapPending, $overlapReviewing] as $b) {
             $this->assertSame('rejected', $b->fresh()->status);
-            $this->assertSame('Tự động từ chối: Xung đột với lịch đã được duyệt (14:00 05/11/2026 – 16:00 05/11/2026)', $b->fresh()->reject_reason);
+            $this->assertSame('Tự động từ chối: khung giờ đã được duyệt cho booking khác (05/11/2026 14:00–16:00)', $b->fresh()->reject_reason);
         }
         $this->assertSame('rejected', $sameClientOtherTalent->fresh()->status);
         $this->assertSame("Tự động từ chối: Xung đột với booking #{$target->id} của bạn đã được duyệt.", $sameClientOtherTalent->fresh()->reject_reason);
@@ -353,10 +368,10 @@ class BookingRulesTest extends TestCase
             'Trùng với lịch bận của talent từ 14:00 05/11/2026 đến 16:00 05/11/2026.',
             $service->checkCollision($this->talent->id, '2026-11-05 15:00', '2026-11-05 15:30', null, $this->client->id)['message']
         );
-        $this->assertSame(
-            'Trùng với một booking khác đang chờ duyệt của talent từ 18:00 05/11/2026 đến 19:00 05/11/2026.',
-            $service->checkCollision($this->talent->id, '2026-11-05 18:30', '2026-11-05 20:00', null, $this->client->id)['message']
-        );
+        $soft = $service->checkCollision($this->talent->id, '2026-11-05 18:30', '2026-11-05 20:00', null, $this->client->id);
+        $this->assertFalse($soft['has_conflict']);
+        $this->assertSame(1, $soft['pending_count']);
+        $this->assertSame(['Có 1 đơn khác đang chờ duyệt khung giờ này.'], $soft['warnings']);
         // vừa trùng booking đã duyệt vừa trùng booking chờ duyệt -> báo lịch bận
         $this->assertStringStartsWith(
             'Trùng với lịch bận của talent',
@@ -366,10 +381,12 @@ class BookingRulesTest extends TestCase
 
     // ---------------------------------------------------------------- lịch streamer
 
-    public function test_streamer_cannot_add_event_over_pending_booking(): void
+    public function test_streamer_busy_event_blocks_approval_of_overlapping_pending_booking(): void
     {
         $this->book($this->client, $this->talent, '14:00', '16:00');
+        $pending = $this->lastBooking();
 
+        // booking chưa duyệt không chặn streamer khóa lịch riêng (chỉ lịch đã khóa/đã duyệt mới chặn)
         $this->actingAs($this->talent->user)
             ->post(route('streamer.schedule.store'), [
                 'event_type' => 'personal',
@@ -377,17 +394,20 @@ class BookingRulesTest extends TestCase
                 'end_time' => $this->at('17:00'),
                 'title' => 'Đi khám',
             ])
-            ->assertSessionHasErrors('start_time');
+            ->assertSessionHas('success');
+
+        $this->actingAs($this->manager)->post(route('bookings.approve', $pending))->assertSessionHas('error');
+        $this->assertSame('rejected', $pending->fresh()->status);
 
         $this->actingAs($this->talent->user)
             ->post(route('streamer.schedule.store'), [
                 'event_type' => 'personal',
-                'start_time' => $this->at('16:00'),
-                'end_time' => $this->at('17:00'),
+                'start_time' => $this->at('17:00'),
+                'end_time' => $this->at('18:00'),
                 'title' => 'Đi khám',
             ])
             ->assertSessionHas('success');
 
-        $this->assertSame('2026-11-05 16:00:00', Schedule::latest('id')->first()->getRawOriginal('start_time'));
+        $this->assertSame('2026-11-05 17:00:00', Schedule::latest('id')->first()->getRawOriginal('start_time'));
     }
 }

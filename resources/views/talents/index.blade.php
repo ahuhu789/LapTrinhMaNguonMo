@@ -124,9 +124,9 @@
                             <a href="{{ route('talents.show', $talent->id) }}" class="text-center py-2 px-2 rounded-xl border border-slate-300 hover:border-primary-500 hover:text-primary-600 font-semibold text-xs transition">
                                 Media Kit
                             </a>
-                            <a href="{{ route('bookings.create', ['streamer_id' => $talent->id]) }}" class="text-center py-2 px-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs transition shadow-sm">
+                            <x-booking-link :streamer="$talent->id" class="text-center py-2 px-2 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs transition shadow-sm">
                                 Đặt Lịch
-                            </a>
+                            </x-booking-link>
                         </div>
                     </div>
                 </div>
