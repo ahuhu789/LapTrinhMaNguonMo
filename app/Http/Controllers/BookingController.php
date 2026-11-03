@@ -97,7 +97,14 @@ class BookingController extends Controller
             $request->user()->id
         );
 
-        return response()->json(['has_conflict' => (bool) $result['has_conflict']]);
+        return response()->json([
+            // chỉ xung đột cứng: lịch đã khóa / booking đã duyệt của talent, hoặc booking còn hiệu lực của chính mình
+            'has_conflict' => (bool) $result['has_conflict'],
+            'conflict_message' => $result['has_conflict'] ? $result['message'] : null,
+            // cảnh báo mềm: booking pending/reviewing của client khác cùng khung giờ (không chặn)
+            'pending_count' => (int) $result['pending_count'],
+            'warnings' => $result['warnings'],
+        ]);
     }
 
     /**
