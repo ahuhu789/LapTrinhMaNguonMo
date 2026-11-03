@@ -3,15 +3,23 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\NormalizesDateTimes;
+use App\Models\Booking;
+use App\Models\StreamerProfile;
+use Illuminate\Auth\Access\Response;
+use Illuminate\Support\Facades\Gate;
+use App\Services\BookingPricing;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Carbon;
+use Illuminate\Validation\Validator;
 
 class StoreBookingRequest extends FormRequest
 {
     use NormalizesDateTimes;
 
-    public function authorize(): bool
+    public function authorize(): Response
     {
-        return $this->user() !== null;
+        // BookingPolicy@create: chỉ client (streamer/manager/admin -> 403 kèm thông báo tiếng Việt)
+        return Gate::inspect('create', Booking::class);
     }
 
     public function rules(): array
@@ -21,7 +29,33 @@ class StoreBookingRequest extends FormRequest
             'start_time' => ['required', 'date', 'after:now'],
             'end_time' => ['required', 'date', 'after:start_time'],
             'job_description' => ['required', 'string', 'min:10'],
-            'budget' => ['required', 'numeric', 'min:100000'],
+            // số nguyên đồng bất kỳ; mức tối thiểu phụ thuộc thời lượng × giá/giờ (kiểm tra trong after())
+            'budget' => ['required', 'integer', 'min:0', 'max:999999999999'],
+        ];
+    }
+
+    /**
+     * Ngân sách >= số giờ (tính theo phút) × rate_per_hour của talent.
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator) {
+                if ($validator->errors()->hasAny(['streamer_id', 'start_time', 'end_time', 'budget'])) {
+                    return;
+                }
+
+                $streamer = StreamerProfile::find($this->input('streamer_id'));
+                $quote = app(BookingPricing::class)->quote(
+                    $streamer,
+                    Carbon::parse($this->input('start_time')),
+                    Carbon::parse($this->input('end_time'))
+                );
+
+                if ((int) $this->input('budget') < $quote['min_budget']) {
+                    $validator->errors()->add('budget', $quote['label']);
+                }
+            },
         ];
     }
 
@@ -41,8 +75,9 @@ class StoreBookingRequest extends FormRequest
             'job_description.string' => 'Mô tả công việc không hợp lệ.',
             'job_description.min' => 'Mô tả công việc tối thiểu 10 ký tự.',
             'budget.required' => 'Vui lòng nhập ngân sách dự kiến.',
-            'budget.numeric' => 'Ngân sách phải là số.',
-            'budget.min' => 'Ngân sách tối thiểu là 100.000 VNĐ.',
+            'budget.integer' => 'Ngân sách phải là số nguyên (đơn vị đồng).',
+            'budget.min' => 'Ngân sách không được âm.',
+            'budget.max' => 'Ngân sách vượt quá giới hạn cho phép.',
         ];
     }
 }

@@ -14,8 +14,8 @@ class HomeController extends Controller
         $stats = [
             'total_talents' => StreamerProfile::where('status', 'active')->count(),
             'total_bookings' => Booking::whereIn('status', ['approved', 'completed'])->count(),
-            'total_hours' => round(StreamMetric::sum('duration_hours')),
-            'total_views' => StreamMetric::sum('avg_viewers'),
+            'total_hours' => (int) round((float) StreamMetric::sum('duration_hours')),
+            'total_views' => (int) StreamMetric::sum('avg_viewers'),
         ];
 
         // 2. Lấy top 6 streamer nổi bật nhất (theo lượt view trung bình)

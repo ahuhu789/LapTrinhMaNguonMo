@@ -9,6 +9,17 @@ use Illuminate\Auth\Access\Response;
 class BookingPolicy
 {
     /**
+     * Tạo booking (form, gửi đơn, check-collision): chỉ tài khoản client.
+     * Khách chưa đăng nhập -> false (Gate trả false khi không có user).
+     */
+    public function create(User $user): Response
+    {
+        return $user->isClient()
+            ? Response::allow()
+            : Response::deny('Chỉ tài khoản Khách hàng (client) mới có thể đặt booking.');
+    }
+
+    /**
      * Xem chi tiết booking (chống IDOR): Admin, Manager phụ trách,
      * Streamer được booking hoặc Client đã tạo đơn.
      */

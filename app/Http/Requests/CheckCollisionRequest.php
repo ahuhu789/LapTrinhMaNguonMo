@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Booking;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Support\Facades\Gate;
 use App\Http\Requests\Concerns\NormalizesDateTimes;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -13,7 +15,16 @@ class CheckCollisionRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return Gate::allows('create', Booking::class);
+    }
+
+    /** Endpoint AJAX: luôn trả 403 dạng JSON. */
+    protected function failedAuthorization(): void
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => Gate::inspect('create', Booking::class)->message()
+                ?? 'Chỉ tài khoản Khách hàng (client) mới có thể đặt booking.',
+        ], 403));
     }
 
     public function rules(): array

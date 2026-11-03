@@ -121,7 +121,7 @@ class BookingAuthorizationTest extends TestCase
                 'end_time' => $start->copy()->addHours(3)->toDateTimeString(),
             ])
             ->assertOk()
-            ->assertExactJson(['has_conflict' => true]);
+            ->assertJsonPath('has_conflict', true);
 
         $this->actingAs($client)
             ->postJson(route('bookings.check-collision'), [
@@ -130,7 +130,9 @@ class BookingAuthorizationTest extends TestCase
                 'end_time' => $start->copy()->addHours(6)->toDateTimeString(),
             ])
             ->assertOk()
-            ->assertExactJson(['has_conflict' => false]);
+            ->assertJsonPath('has_conflict', false)
+            ->assertJsonPath('pending_count', 0)
+            ->assertJsonPath('warnings', []);
     }
 
     public function test_legacy_api_routes_are_gone(): void

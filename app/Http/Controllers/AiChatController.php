@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AiRecommendRequest;
+use App\Models\Booking;
+use Illuminate\Support\Facades\Gate;
 use App\Services\AiRecommendationService;
 
 class AiChatController extends Controller
@@ -14,6 +16,7 @@ class AiChatController extends Controller
     {
         $result = $aiService->recommendTalents($request->validated('message'));
 
-        return response()->json($result);
+        // can_book: FE ẩn nút "Đặt lịch" trên thẻ talent nếu false (khách / streamer / manager / admin)
+        return response()->json($result + ['can_book' => Gate::allows('create', Booking::class)]);
     }
 }
