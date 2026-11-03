@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\StreamMetric;
-use App\Models\StreamerProfile;
 use App\Models\Kpi;
 use App\Models\Booking;
 use Illuminate\Support\Facades\DB;
@@ -18,16 +17,20 @@ class CsvMetricsService
      * Parse và import file CSV báo cáo số liệu stream
      *
      * @param string $filePath Đường dẫn tuyệt đối tới file CSV
-     * @return array Kết quả chi tiết quá trình xử lý
+     * @param array<int> $allowedStreamerIds Danh sách streamer_id người dùng hiện tại được phép nhập số liệu
+     *                                       (Manager: chỉ các streamer mình phụ trách; Admin: tất cả)
+     * @return array{success: bool, message: string, imported_count: int, errors: array<string>}
+     *         Lỗi cấp tệp (không đọc được, sai cột, lỗi hệ thống): success=false, chỉ có 'message', 'errors' rỗng.
+     *         Lỗi từng dòng: success=true, chi tiết nằm trong 'errors'.
      */
-    public function importCsv(string $filePath): array
+    public function importCsv(string $filePath, array $allowedStreamerIds): array
     {
         if (!file_exists($filePath) || !is_readable($filePath)) {
             return [
                 'success' => false,
                 'message' => 'Không thể đọc tệp CSV tải lên.',
                 'imported_count' => 0,
-                'errors' => ['Tệp tin không tồn tại hoặc không thể đọc.'],
+                'errors' => [],
             ];
         }
 
@@ -37,7 +40,7 @@ class CsvMetricsService
                 'success' => false,
                 'message' => 'Không thể mở tệp tin CSV.',
                 'imported_count' => 0,
-                'errors' => ['Lỗi mở luồng đọc file.'],
+                'errors' => [],
             ];
         }
 
@@ -47,9 +50,9 @@ class CsvMetricsService
             fclose($handle);
             return [
                 'success' => false,
-                'message' => 'Tệp CSV rỗng.',
+                'message' => 'Tệp CSV rỗng, không có dữ liệu.',
                 'imported_count' => 0,
-                'errors' => ['File không có dữ liệu.'],
+                'errors' => [],
             ];
         }
 
@@ -64,21 +67,24 @@ class CsvMetricsService
                 fclose($handle);
                 return [
                     'success' => false,
-                    'message' => 'Định dạng cột CSV không hợp lệ. Cột thiếu: ' . $col,
+                    'message' => 'Định dạng cột CSV không hợp lệ. Cột thiếu: ' . $col
+                        . '. Yêu cầu đầy đủ các cột: ' . implode(', ', $expectedColumns) . '.',
                     'imported_count' => 0,
-                    'errors' => ['Yêu cầu đầy đủ các cột: ' . implode(', ', $expectedColumns)],
+                    'errors' => [],
                 ];
             }
         }
 
         $colMap = array_flip($header);
         $importedCount = 0;
+        $createdCount = 0;
+        $updatedCount = 0;
         $rowNumber = 1;
         $errors = [];
         $affectedStreamerMonths = []; // Lưu lại danh sách ['streamer_id' => X, 'month_year' => 'YYYY-MM'] để tái tính KPI
 
-        // Lấy danh sách streamer_id hợp lệ trong hệ thống để tra cứu nhanh O(1)
-        $validStreamerIds = StreamerProfile::pluck('id')->flip()->toArray();
+        // Tập streamer_id được phép (tra cứu nhanh O(1))
+        $validStreamerIds = array_flip(array_map('intval', $allowedStreamerIds));
 
         DB::beginTransaction();
         try {
@@ -100,7 +106,7 @@ class CsvMetricsService
 
                 // Kiểm tra hợp lệ dữ liệu từng dòng
                 if (!isset($validStreamerIds[$streamerId])) {
-                    $errors[] = "Dòng $rowNumber: Streamer ID ($streamerId) không tồn tại.";
+                    $errors[] = "Dòng $rowNumber: Streamer ID ($streamerId) không tồn tại hoặc không thuộc quyền quản lý của bạn.";
                     continue;
                 }
 
@@ -109,10 +115,9 @@ class CsvMetricsService
                     continue;
                 }
 
-                try {
-                    $dateObj = Carbon::parse($streamDate);
-                } catch (Exception $e) {
-                    $errors[] = "Dòng $rowNumber: Định dạng ngày '$streamDate' không đúng (chuẩn YYYY-MM-DD).";
+                $dateObj = $this->parseStrictDate($streamDate);
+                if ($dateObj === null) {
+                    $errors[] = "Dòng $rowNumber: Ngày '$streamDate' không hợp lệ (yêu cầu định dạng YYYY-MM-DD và là ngày có thật, ví dụ 2026-10-05).";
                     continue;
                 }
 
@@ -121,18 +126,27 @@ class CsvMetricsService
                     continue;
                 }
 
-                // Ghi vào bảng stream_metrics
-                StreamMetric::create([
-                    'streamer_id' => $streamerId,
-                    'platform' => $platform,
-                    'stream_date' => $dateObj->toDateString(),
-                    'duration_hours' => $duration,
-                    'avg_viewers' => max(0, $avgViewers),
-                    'peak_viewers' => max(0, $peakViewers),
-                    'followers_gained' => $followers,
-                    'source_type' => 'csv_import',
-                ]);
+                // Ghi vào bảng stream_metrics (idempotent: cùng streamer + nền tảng + ngày thì cập nhật)
+                $metric = StreamMetric::updateOrCreate(
+                    [
+                        'streamer_id' => $streamerId,
+                        'platform' => $platform,
+                        'stream_date' => $dateObj->toDateString(),
+                    ],
+                    [
+                        'duration_hours' => $duration,
+                        'avg_viewers' => max(0, $avgViewers),
+                        'peak_viewers' => max(0, $peakViewers),
+                        'followers_gained' => $followers,
+                        'source_type' => 'csv_import',
+                    ]
+                );
 
+                if ($metric->wasRecentlyCreated) {
+                    $createdCount++;
+                } else {
+                    $updatedCount++;
+                }
                 $importedCount++;
 
                 // Đánh dấu tháng cần aggregate
@@ -153,8 +167,10 @@ class CsvMetricsService
 
             return [
                 'success' => true,
-                'message' => "Import thành công $importedCount bản ghi metrics. Đã cập nhật $updatedKpisCount chỉ tiêu KPI liên quan.",
+                'message' => "Import thành công $importedCount bản ghi metrics ($createdCount mới, $updatedCount cập nhật). Đã cập nhật $updatedKpisCount chỉ tiêu KPI liên quan.",
                 'imported_count' => $importedCount,
+                'created_count' => $createdCount,
+                'updated_count' => $updatedCount,
                 'updated_kpis' => $updatedKpisCount,
                 'errors' => $errors,
             ];
@@ -163,13 +179,34 @@ class CsvMetricsService
             if (is_resource($handle)) {
                 fclose($handle);
             }
+            report($e);
+
             return [
                 'success' => false,
-                'message' => 'Lỗi xử lý cơ sở dữ liệu: ' . $e->getMessage(),
+                'message' => 'Lỗi hệ thống khi lưu số liệu. Toàn bộ dữ liệu của tệp chưa được nhập, vui lòng thử lại sau.',
                 'imported_count' => 0,
-                'errors' => [$e->getMessage()],
+                'errors' => [],
             ];
         }
+    }
+
+    /**
+     * Parse ngày theo đúng định dạng Y-m-d (không đoán định dạng như Carbon::parse).
+     * Từ chối ngày tràn (vd 2026-02-30 -> 2026-03-02) bằng cách format ngược và so sánh.
+     */
+    protected function parseStrictDate(string $value): ?Carbon
+    {
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return null;
+        }
+
+        try {
+            $date = Carbon::createFromFormat('!Y-m-d', $value);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return ($date !== false && $date->format('Y-m-d') === $value) ? $date : null;
     }
 
     /**

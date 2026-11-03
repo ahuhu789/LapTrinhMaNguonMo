@@ -15,7 +15,7 @@ class TalentController extends Controller
      */
     public function index(Request $request)
     {
-        $query = StreamerProfile::where('status', 'active')->with(['metrics']);
+        $query = StreamerProfile::where('status', 'active')->withViewerStats();
 
         // 1. Lọc theo từ khóa (Tên hoặc Bio)
         if ($request->filled('keyword')) {
@@ -41,19 +41,17 @@ class TalentController extends Controller
             };
         }
 
-        // 4. Lấy danh sách kết quả và sắp xếp
-        $talents = $query->get();
+        // 4. Sắp xếp & phân trang trực tiếp trong SQL
+        match ($request->query('sort')) {
+            'rate_asc' => $query->orderBy('rate_per_hour'),
+            'rate_desc' => $query->orderByDesc('rate_per_hour'),
+            'views_desc', null, '' => $query->orderByDesc('avg_viewers_calc'),
+            default => null, // giá trị lạ -> chỉ sắp theo id bên dưới
+        };
 
-        if ($request->filled('sort')) {
-            $talents = match ($request->sort) {
-                'rate_asc' => $talents->sortBy('rate_per_hour'),
-                'rate_desc' => $talents->sortByDesc('rate_per_hour'),
-                'views_desc' => $talents->sortByDesc('avg_viewers'),
-                default => $talents->sortByDesc('id'),
-            };
-        } else {
-            $talents = $talents->sortByDesc('avg_viewers');
-        }
+        $talents = $query->orderByDesc('id')
+            ->paginate(12)
+            ->withQueryString();
 
         // Danh sách thể loại có sẵn cho bộ lọc dropdown
         $categories = StreamerProfile::distinct()->pluck('category');
@@ -66,7 +64,9 @@ class TalentController extends Controller
      */
     public function show($id)
     {
-        $talent = StreamerProfile::with(['user', 'manager', 'metrics'])->findOrFail($id);
+        $talent = StreamerProfile::with(['user', 'manager'])
+            ->withViewerStats()
+            ->findOrFail($id);
 
         // 1. Thống kê tổng hợp theo nền tảng stream
         $platformBreakdown = StreamMetric::where('streamer_id', $talent->id)

@@ -23,13 +23,15 @@ Route::get('/talents', [TalentController::class, 'index'])->name('talents.index'
 Route::get('/talents/{id}', [TalentController::class, 'show'])->name('talents.show');
 
 // AI Assistant Endpoint (Tư vấn công khai cho khách hàng)
-Route::post('/ai/recommend', [AiChatController::class, 'recommend'])->name('ai.recommend');
+Route::post('/ai/recommend', [AiChatController::class, 'recommend'])
+    ->middleware('throttle:10,1')
+    ->name('ai.recommend');
 
 // --- 2. Authentication Routes ---
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login.post');
 Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register');
-Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('register.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // --- 3. Authenticated Routes chung (Tất cả vai trò đã đăng nhập) ---
@@ -38,7 +40,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
     Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
     Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
-    Route::get('/bookings/{id}', [BookingController::class, 'show'])->name('bookings.show');
+    // Kiểm tra nhanh va chạm lịch trình (AJAX live validation) - chỉ trả về {has_conflict: bool}
+    Route::post('/bookings/check-collision', [BookingController::class, 'checkCollision'])
+        ->middleware('throttle:30,1')
+        ->name('bookings.check-collision');
+    Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
 });
 
 // --- 4. Manager & Admin Routes (Quản lý vận hành) ---
@@ -46,8 +52,8 @@ Route::middleware(['auth', 'role:manager,admin'])->group(function () {
     Route::get('/manager/dashboard', [AdminController::class, 'managerDashboard'])->name('manager.dashboard');
     
     // Duyệt và Từ chối booking kèm kiểm tra xung đột thời gian
-    Route::post('/bookings/{id}/approve', [BookingController::class, 'approve'])->name('bookings.approve');
-    Route::post('/bookings/{id}/reject', [BookingController::class, 'reject'])->name('bookings.reject');
+    Route::post('/bookings/{booking}/approve', [BookingController::class, 'approve'])->name('bookings.approve');
+    Route::post('/bookings/{booking}/reject', [BookingController::class, 'reject'])->name('bookings.reject');
 
     // Quản lý KPI
     Route::get('/manager/kpis', [KpiController::class, 'index'])->name('manager.kpis');
@@ -72,7 +78,7 @@ Route::middleware(['auth', 'role:streamer'])->group(function () {
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'adminDashboard'])->name('admin.dashboard');
     Route::get('/admin/users', [AdminController::class, 'usersIndex'])->name('admin.users');
-    Route::post('/admin/users/{id}/role', [AdminController::class, 'updateUserRole'])->name('admin.users.role');
+    Route::post('/admin/users/{user}/role', [AdminController::class, 'updateUserRole'])->name('admin.users.role');
     Route::get('/admin/assign-streamers', [AdminController::class, 'assignStreamers'])->name('admin.assign');
-    Route::post('/admin/assign-streamers/{id}', [AdminController::class, 'updateStreamerManager'])->name('admin.assign.update');
+    Route::post('/admin/assign-streamers/{streamer}', [AdminController::class, 'updateStreamerManager'])->name('admin.assign.update');
 });

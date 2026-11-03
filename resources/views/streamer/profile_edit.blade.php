@@ -23,7 +23,7 @@
             <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Lĩnh Vực / Thể Loại Chính <span class="text-rose-500">*</span></label>
                 <select name="category" required class="w-full text-xs px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-medium">
-                    @foreach($categories as $cat)
+                    @foreach(($categories ?? config('mcn.categories', ['Gaming', 'Just Chatting', 'Review', 'Lifestyle', 'Esports', 'Entertainment'])) as $cat)
                         <option value="{{ $cat }}" {{ old('category', $profile->category) == $cat ? 'selected' : '' }}>{{ $cat }}</option>
                     @endforeach
                 </select>
@@ -31,11 +31,11 @@
         </div>
 
         <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Mức Giá Booking Tham Khảo (VNĐ / Giờ) <span class="text-rose-500">*</span></label>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Mức Giá Booking Tham Khảo (₫ / giờ) <span class="text-rose-500">*</span></label>
             <div class="relative">
                 <input type="number" name="rate_per_hour" value="{{ old('rate_per_hour', $profile->rate_per_hour) }}" min="100000" step="50000" required
                     class="w-full text-xs px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 font-bold text-slate-800">
-                <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-semibold text-slate-400">VNĐ/h</span>
+                <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-semibold text-slate-400">₫/giờ</span>
             </div>
         </div>
 

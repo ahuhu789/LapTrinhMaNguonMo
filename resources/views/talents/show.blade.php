@@ -7,13 +7,13 @@
     <!-- Header Media Kit Banner -->
     <div class="relative bg-slate-900 rounded-3xl overflow-hidden shadow-lg mb-8">
         <div class="h-64 sm:h-80 w-full overflow-hidden relative">
-            <img src="{{ $talent->banner_url ?? 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600' }}" alt="Banner" class="w-full h-full object-cover opacity-80">
+            <img src="{{ $talent->banner_url ?? 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1600' }}" alt="Banner" width="1600" height="320" decoding="async" class="w-full h-full object-cover opacity-80">
             <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
         </div>
 
         <div class="relative px-6 sm:px-10 pb-8 -mt-20 flex flex-col sm:flex-row items-center sm:items-end justify-between gap-6">
             <div class="flex flex-col sm:flex-row items-center sm:items-end gap-6 text-center sm:text-left">
-                <img src="{{ $talent->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400' }}" alt="{{ $talent->stage_name }}" class="w-32 h-32 rounded-3xl border-4 border-white shadow-2xl object-cover bg-slate-800">
+                <img src="{{ $talent->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400' }}" alt="{{ $talent->stage_name }}" width="128" height="128" decoding="async" class="w-32 h-32 rounded-3xl border-4 border-white shadow-2xl object-cover bg-slate-800">
                 <div>
                     <div class="inline-flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-bold bg-primary-600/90 text-white mb-2 shadow-sm">
                         <span>{{ $talent->category }}</span>
@@ -30,7 +30,7 @@
 
             <div class="bg-white/10 backdrop-blur-md border border-white/20 p-5 rounded-2xl text-center sm:text-right w-full sm:w-auto">
                 <span class="text-xs text-slate-300 uppercase font-semibold block">Mức giá Booking chuẩn</span>
-                <span class="text-2xl sm:text-3xl font-black text-emerald-400 block my-1">{{ $talent->formatted_rate }}</span>
+                <span class="text-2xl sm:text-3xl font-black text-emerald-400 block my-1"><x-money :amount="$talent->rate_per_hour" suffix="/giờ" /></span>
                 <a href="{{ route('bookings.create', ['streamer_id' => $talent->id]) }}" class="mt-2 inline-block w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white font-bold text-sm shadow-lg shadow-primary-600/30 transition">
                     <i class="fas fa-calendar-check mr-1.5"></i> Đặt Lịch Booking Ngay
                 </a>
@@ -46,7 +46,7 @@
             </div>
             <div>
                 <span class="text-xs font-semibold text-slate-400 uppercase">Avg Viewers</span>
-                <div class="text-2xl font-black text-slate-900">{{ number_format($talent->avg_viewers) }}</div>
+                <div class="text-2xl font-black text-slate-900">{{ number_format((float) ($talent->avg_viewers_calc ?? $talent->avg_viewers ?? 0), 0, ',', '.') }}</div>
                 <span class="text-[11px] text-emerald-600 font-semibold"><i class="fas fa-arrow-trend-up mr-1"></i> Ổn định</span>
             </div>
         </div>
@@ -57,7 +57,7 @@
             </div>
             <div>
                 <span class="text-xs font-semibold text-slate-400 uppercase">Peak Viewers</span>
-                <div class="text-2xl font-black text-slate-900">{{ number_format($talent->peak_viewers) }}</div>
+                <div class="text-2xl font-black text-slate-900">{{ number_format((float) ($talent->peak_viewers_calc ?? $talent->peak_viewers ?? 0), 0, ',', '.') }}</div>
                 <span class="text-[11px] text-indigo-600 font-semibold">Kỷ lục cao nhất</span>
             </div>
         </div>
@@ -68,7 +68,7 @@
             </div>
             <div>
                 <span class="text-xs font-semibold text-slate-400 uppercase">Giờ Live Tháng Này</span>
-                <div class="text-2xl font-black text-slate-900">{{ number_format($talent->monthly_stream_hours, 1) }}h</div>
+                <div class="text-2xl font-black text-slate-900">{{ number_format((float) $talent->monthly_stream_hours, 1, ',', '.') }}h</div>
                 <span class="text-[11px] text-emerald-600 font-semibold">Chỉ số cam kết</span>
             </div>
         </div>
@@ -79,7 +79,7 @@
             </div>
             <div>
                 <span class="text-xs font-semibold text-slate-400 uppercase">Giá Booking / Giờ</span>
-                <div class="text-xl font-black text-slate-900">{{ number_format($talent->rate_per_hour, 0, ',', '.') }} đ</div>
+                <div class="text-xl font-black text-slate-900"><x-money :amount="$talent->rate_per_hour" /></div>
                 <span class="text-[11px] text-slate-500">Chưa bao gồm VAT</span>
             </div>
         </div>
@@ -126,9 +126,9 @@
                                             <span>{{ $pb->platform }}</span>
                                         </td>
                                         <td class="py-3 px-4">{{ $pb->sessions }} buổi</td>
-                                        <td class="py-3 px-4 font-medium">{{ number_format($pb->total_hours, 1) }} giờ</td>
-                                        <td class="py-3 px-4 font-bold text-slate-800">{{ number_format($pb->avg_viewers) }}</td>
-                                        <td class="py-3 px-4 font-bold text-indigo-600">{{ number_format($pb->peak_viewers) }}</td>
+                                        <td class="py-3 px-4 font-medium">{{ number_format((float) $pb->total_hours, 1, ',', '.') }} giờ</td>
+                                        <td class="py-3 px-4 font-bold text-slate-800">{{ number_format((float) ($pb->avg_viewers ?? 0), 0, ',', '.') }}</td>
+                                        <td class="py-3 px-4 font-bold text-indigo-600">{{ number_format((float) ($pb->peak_viewers ?? 0), 0, ',', '.') }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -175,7 +175,7 @@
                                 </div>
                                 <div class="text-slate-500 flex items-center space-x-2">
                                     <i class="far fa-clock"></i>
-                                    <span>{{ $sch->start_time->format('H:i d/m') }} - {{ $sch->end_time->format('H:i d/m/Y') }}</span>
+                                    <x-datetime-range :start="$sch->start_time" :end="$sch->end_time" />
                                 </div>
                             </div>
                         @endforeach
@@ -219,9 +219,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const ctx = document.getElementById('viewerTrendChart');
     if (!ctx) return;
 
-    const rawDates = {!! json_encode($recentMetrics->pluck('stream_date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d/m'))) !!};
-    const rawAvg = {!! json_encode($recentMetrics->pluck('avg_viewers')) !!};
-    const rawPeak = {!! json_encode($recentMetrics->pluck('peak_viewers')) !!};
+    const rawDates = {{ Js::from($recentMetrics->pluck('stream_date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d/m'))) }};
+    const rawAvg = {{ Js::from($recentMetrics->pluck('avg_viewers')) }};
+    const rawPeak = {{ Js::from($recentMetrics->pluck('peak_viewers')) }};
 
     new Chart(ctx, {
         type: 'line',

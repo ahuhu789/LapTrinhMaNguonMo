@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Services\CsvMetricsService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -186,7 +187,7 @@ class DatabaseSeeder extends Seeder
             ],
             [
                 'id' => 2, 'streamer_id' => 1, 'event_type' => 'stream', 'reference_id' => null,
-                'start_time' => Carbon::now()->addDay()->setTime(22, 0), 'end_time' => Carbon::now()->addDay()->addHours(4)->setTime(2, 0),
+                'start_time' => Carbon::now()->addDay()->setTime(22, 0), 'end_time' => Carbon::now()->addDays(2)->setTime(2, 0), // kết thúc 02:00 ngày hôm sau
                 'title' => 'Live CS2 & Talkshow đêm muộn cùng Bộ Tộc',
                 'created_at' => now(), 'updated_at' => now(),
             ],
@@ -204,53 +205,93 @@ class DatabaseSeeder extends Seeder
             ],
         ]);
 
-        // 5. Stream Metrics (Số liệu view chân thực của các streamer hàng đầu)
-        DB::table('stream_metrics')->insert([
-            // Độ Mixi
-            ['streamer_id' => 1, 'platform' => 'youtube', 'stream_date' => Carbon::yesterday(), 'duration_hours' => 4.5, 'avg_viewers' => 125000, 'peak_viewers' => 245000, 'followers_gained' => 8500, 'source_type' => 'csv_import', 'created_at' => now(), 'updated_at' => now()],
-            ['streamer_id' => 1, 'platform' => 'youtube', 'stream_date' => Carbon::now()->subDays(2), 'duration_hours' => 5.0, 'avg_viewers' => 118000, 'peak_viewers' => 210000, 'followers_gained' => 6200, 'source_type' => 'csv_import', 'created_at' => now(), 'updated_at' => now()],
-            
-            // Rambo
-            ['streamer_id' => 2, 'platform' => 'youtube', 'stream_date' => Carbon::yesterday(), 'duration_hours' => 3.5, 'avg_viewers' => 48000, 'peak_viewers' => 86000, 'followers_gained' => 2500, 'source_type' => 'csv_import', 'created_at' => now(), 'updated_at' => now()],
-            
-            // KillerQueen
-            ['streamer_id' => 3, 'platform' => 'tiktok', 'stream_date' => Carbon::yesterday(), 'duration_hours' => 2.5, 'avg_viewers' => 22000, 'peak_viewers' => 43000, 'followers_gained' => 3200, 'source_type' => 'csv_import', 'created_at' => now(), 'updated_at' => now()],
-            
-            // Nhism
-            ['streamer_id' => 4, 'platform' => 'youtube', 'stream_date' => Carbon::yesterday(), 'duration_hours' => 4.0, 'avg_viewers' => 36000, 'peak_viewers' => 69000, 'followers_gained' => 1800, 'source_type' => 'csv_import', 'created_at' => now(), 'updated_at' => now()],
-            
-            // Dev Nguyễn
-            ['streamer_id' => 5, 'platform' => 'youtube', 'stream_date' => Carbon::now()->subDays(2), 'duration_hours' => 4.0, 'avg_viewers' => 31000, 'peak_viewers' => 55000, 'followers_gained' => 1400, 'source_type' => 'csv_import', 'created_at' => now(), 'updated_at' => now()],
-            
-            // QNT
-            ['streamer_id' => 6, 'platform' => 'youtube', 'stream_date' => Carbon::yesterday(), 'duration_hours' => 3.0, 'avg_viewers' => 24000, 'peak_viewers' => 45000, 'followers_gained' => 1100, 'source_type' => 'csv_import', 'created_at' => now(), 'updated_at' => now()],
-            
-            // Thầy Giáo Ba
-            ['streamer_id' => 7, 'platform' => 'youtube', 'stream_date' => Carbon::now()->subDays(2), 'duration_hours' => 4.5, 'avg_viewers' => 42000, 'peak_viewers' => 82000, 'followers_gained' => 2100, 'source_type' => 'csv_import', 'created_at' => now(), 'updated_at' => now()],
-            
-            // MisThy
-            ['streamer_id' => 8, 'platform' => 'youtube', 'stream_date' => Carbon::yesterday(), 'duration_hours' => 2.5, 'avg_viewers' => 38000, 'peak_viewers' => 76000, 'followers_gained' => 2900, 'source_type' => 'csv_import', 'created_at' => now(), 'updated_at' => now()],
-            
-            // Xemesis
-            ['streamer_id' => 9, 'platform' => 'youtube', 'stream_date' => Carbon::yesterday(), 'duration_hours' => 3.0, 'avg_viewers' => 55000, 'peak_viewers' => 115000, 'followers_gained' => 4500, 'source_type' => 'csv_import', 'created_at' => now(), 'updated_at' => now()],
-            
-            // PewPew
-            ['streamer_id' => 10, 'platform' => 'tiktok', 'stream_date' => Carbon::now()->subDays(2), 'duration_hours' => 3.5, 'avg_viewers' => 45000, 'peak_viewers' => 92000, 'followers_gained' => 3800, 'source_type' => 'csv_import', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        // 5. Stream Metrics + booking đã hoàn thành trong tháng hiện tại (dữ liệu demo KPI)
+        //    Hoàn toàn tất định (không random): mỗi streamer có số buổi, thời lượng/buổi và doanh thu cố định
+        //    để KPI tính bởi aggregateKpis() rơi vào các mức khác nhau:
+        //      - KillerQueen (#3), Xemesis (#9): vượt chỉ tiêu (>= 100%)
+        //      - Nhism (#4): 75% | Thầy Giáo Ba (#7): 90% giờ / 70% doanh thu
+        //      - QNT (#6): 40% | PewPew (#10): 57% giờ / 34% doanh thu
+        //    Buổi stream rải đều từ ngày 1 đến ngày 26 của tháng; mỗi (streamer, platform, ngày) là duy nhất.
+        $monthStart = Carbon::now()->startOfMonth();
 
-        // 6. KPIs
+        // streamer_id => [platform, số buổi, giờ/buổi, avg_viewers gốc, peak gốc, followers/buổi, [doanh thu booking hoàn thành]]
+        $metricPlans = [
+            1  => ['youtube', 16, 4.5, 125000, 245000, 8500, [25000000, 20000000]], // 72h / 90h = 80%
+            2  => ['youtube', 14, 4.0, 48000, 86000, 2500, [20000000]],             // 56h / 70h = 80%
+            3  => ['tiktok', 11, 5.0, 22000, 43000, 3200, [15000000, 13000000]],    // 55h / 50h = 110%, 28tr / 25tr = 112%
+            4  => ['youtube', 13, 3.75, 36000, 69000, 1800, [14000000, 12250000]],  // 48.75h / 65h = 75%, 26.25tr / 35tr = 75%
+            5  => ['youtube', 12, 4.0, 31000, 55000, 1400, [18000000]],             // 48h / 60h = 80%, 18tr / 30tr = 60%
+            6  => ['youtube', 8, 2.5, 24000, 45000, 1100, [10000000]],              // 20h / 50h = 40%, 10tr / 25tr = 40%
+            7  => ['youtube', 15, 4.5, 42000, 82000, 2100, [20000000, 15000000]],   // 67.5h / 75h = 90%, 35tr / 50tr = 70%
+            8  => ['youtube', 10, 3.0, 38000, 76000, 2900, [22000000]],             // 30h / 60h = 50%, 22tr / 40tr = 55%
+            9  => ['youtube', 12, 4.5, 55000, 115000, 4500, [30000000, 20000000]],  // 54h / 50h = 108%, >= 50tr / 60tr
+            10 => ['tiktok', 9, 3.5, 45000, 92000, 3800, [12000000]],               // 31.5h / 55h = 57%, 12tr / 35tr = 34%
+        ];
+
+        $metricRows = [];
+        $bookingId = 100; // tránh trùng id với các booking cố định ở trên
+        foreach ($metricPlans as $streamerId => [$platform, $sessions, $hours, $avg, $peak, $followers, $completedBudgets]) {
+            for ($n = 0; $n < $sessions; $n++) {
+                // Ngày 1..26, phân bố đều và không trùng nhau
+                $day = 1 + intdiv($n * 25, max($sessions - 1, 1));
+                // Dao động lượt xem tất định quanh giá trị gốc: -5%, 0%, +5%
+                $swing = (($n % 3) - 1) * 0.05;
+
+                $metricRows[] = [
+                    'streamer_id' => $streamerId,
+                    'platform' => $platform,
+                    'stream_date' => $monthStart->copy()->addDays($day - 1)->toDateString(),
+                    'duration_hours' => $hours,
+                    'avg_viewers' => (int) round($avg * (1 + $swing)),
+                    'peak_viewers' => (int) round($peak * (1 + $swing)),
+                    'followers_gained' => $followers,
+                    'source_type' => 'csv_import',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            // Booking đã hoàn thành trong tháng (doanh thu KPI) + lịch khóa tương ứng
+            foreach ($completedBudgets as $k => $budget) {
+                $bookingId++;
+                $start = $monthStart->copy()->addDays(4 + $k * 7 + ($streamerId % 3))->setTime(14, 0);
+                $end = $start->copy()->addHours(3);
+
+                DB::table('bookings')->insert([
+                    'id' => $bookingId, 'client_id' => $bookingId % 2 ? 15 : 16, 'streamer_id' => $streamerId,
+                    'manager_id' => DB::table('streamer_profiles')->where('id', $streamerId)->value('manager_id'),
+                    'start_time' => $start, 'end_time' => $end,
+                    'job_description' => 'Chiến dịch livestream quảng bá sản phẩm đã hoàn thành (dữ liệu demo).',
+                    'budget' => $budget, 'commission_rate' => 15.00, 'status' => 'completed', 'reject_reason' => null,
+                    'created_at' => now(), 'updated_at' => now(),
+                ]);
+
+                DB::table('schedules')->insert([
+                    'streamer_id' => $streamerId, 'event_type' => 'booking', 'reference_id' => $bookingId,
+                    'start_time' => $start, 'end_time' => $end,
+                    'title' => 'Booking: Chiến dịch quảng bá (đã hoàn thành)',
+                    'created_at' => now(), 'updated_at' => now(),
+                ]);
+            }
+        }
+
+        DB::table('stream_metrics')->insert($metricRows);
+
+        // 6. KPIs: chỉ seed chỉ tiêu (target). Phần thực đạt (achieved_hours / achieved_revenue / status)
+        //    được tính từ chính stream_metrics + bookings đã seed bằng CsvMetricsService::aggregateKpis()
+        //    -> cùng logic với lúc import CSV thật, số liệu luôn khớp nhau.
         $currentMonth = Carbon::now()->format('Y-m');
         $kpiData = [
-            ['streamer_id' => 1, 'target_hours' => 90, 'target_revenue' => 100000000, 'target_avg_viewers' => 120000, 'achieved_hours' => 72.5, 'achieved_revenue' => 75000000, 'status' => 'in_progress'],
-            ['streamer_id' => 2, 'target_hours' => 70, 'target_revenue' => 45000000, 'target_avg_viewers' => 45000, 'achieved_hours' => 58.0, 'achieved_revenue' => 37500000, 'status' => 'in_progress'],
-            ['streamer_id' => 3, 'target_hours' => 50, 'target_revenue' => 25000000, 'target_avg_viewers' => 20000, 'achieved_hours' => 42.0, 'achieved_revenue' => 21000000, 'status' => 'in_progress'],
-            ['streamer_id' => 4, 'target_hours' => 65, 'target_revenue' => 35000000, 'target_avg_viewers' => 35000, 'achieved_hours' => 50.0, 'achieved_revenue' => 28000000, 'status' => 'in_progress'],
-            ['streamer_id' => 5, 'target_hours' => 60, 'target_revenue' => 30000000, 'target_avg_viewers' => 30000, 'achieved_hours' => 48.0, 'achieved_revenue' => 24000000, 'status' => 'in_progress'],
-            ['streamer_id' => 6, 'target_hours' => 50, 'target_revenue' => 25000000, 'target_avg_viewers' => 22000, 'achieved_hours' => 38.0, 'achieved_revenue' => 19000000, 'status' => 'in_progress'],
-            ['streamer_id' => 7, 'target_hours' => 75, 'target_revenue' => 50000000, 'target_avg_viewers' => 40000, 'achieved_hours' => 62.0, 'achieved_revenue' => 41600000, 'status' => 'in_progress'],
-            ['streamer_id' => 8, 'target_hours' => 60, 'target_revenue' => 40000000, 'target_avg_viewers' => 35000, 'achieved_hours' => 45.0, 'achieved_revenue' => 31500000, 'status' => 'in_progress'],
-            ['streamer_id' => 9, 'target_hours' => 50, 'target_revenue' => 60000000, 'target_avg_viewers' => 50000, 'achieved_hours' => 40.0, 'achieved_revenue' => 54000000, 'status' => 'in_progress'],
-            ['streamer_id' => 10, 'target_hours' => 55, 'target_revenue' => 35000000, 'target_avg_viewers' => 40000, 'achieved_hours' => 42.0, 'achieved_revenue' => 28800000, 'status' => 'in_progress'],
+            ['streamer_id' => 1, 'target_hours' => 90, 'target_revenue' => 100000000, 'target_avg_viewers' => 120000],
+            ['streamer_id' => 2, 'target_hours' => 70, 'target_revenue' => 45000000, 'target_avg_viewers' => 45000],
+            ['streamer_id' => 3, 'target_hours' => 50, 'target_revenue' => 25000000, 'target_avg_viewers' => 20000],
+            ['streamer_id' => 4, 'target_hours' => 65, 'target_revenue' => 35000000, 'target_avg_viewers' => 35000],
+            ['streamer_id' => 5, 'target_hours' => 60, 'target_revenue' => 30000000, 'target_avg_viewers' => 30000],
+            ['streamer_id' => 6, 'target_hours' => 50, 'target_revenue' => 25000000, 'target_avg_viewers' => 22000],
+            ['streamer_id' => 7, 'target_hours' => 75, 'target_revenue' => 50000000, 'target_avg_viewers' => 40000],
+            ['streamer_id' => 8, 'target_hours' => 60, 'target_revenue' => 40000000, 'target_avg_viewers' => 35000],
+            ['streamer_id' => 9, 'target_hours' => 50, 'target_revenue' => 60000000, 'target_avg_viewers' => 50000],
+            ['streamer_id' => 10, 'target_hours' => 55, 'target_revenue' => 35000000, 'target_avg_viewers' => 40000],
         ];
 
         foreach ($kpiData as $k) {
@@ -260,6 +301,13 @@ class DatabaseSeeder extends Seeder
                 'updated_at' => now(),
             ]));
         }
+
+        app(CsvMetricsService::class)->aggregateKpis(
+            collect($kpiData)->map(fn ($k) => [
+                'streamer_id' => $k['streamer_id'],
+                'month_year' => $currentMonth,
+            ])->all()
+        );
 
         if (DB::getDriverName() === 'sqlite') {
             DB::statement('PRAGMA foreign_keys = ON;');

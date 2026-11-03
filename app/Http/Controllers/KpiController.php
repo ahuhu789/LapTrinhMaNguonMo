@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreKpiRequest;
 use App\Models\Kpi;
 use App\Models\StreamerProfile;
 use Illuminate\Http\Request;
@@ -20,19 +21,13 @@ class KpiController extends Controller
 
         $query = Kpi::with('streamer.user')->where('month_year', $selectedMonth);
 
+        // Route đã giới hạn role:manager,admin -> chỉ còn 2 nhánh
         if ($user->isAdmin()) {
             $kpis = $query->paginate(20);
             $streamers = StreamerProfile::where('status', 'active')->orderBy('stage_name')->get();
-        } elseif ($user->isManager()) {
-            $streamerIds = $user->managedStreamers()->pluck('id');
-            $kpis = $query->whereIn('streamer_id', $streamerIds)->paginate(20);
-            $streamers = $user->managedStreamers;
-        } elseif ($user->isStreamer()) {
-            $profile = $user->streamerProfile;
-            $kpis = $profile ? $query->where('streamer_id', $profile->id)->paginate(20) : collect();
-            $streamers = collect();
         } else {
-            abort(403);
+            $streamers = $user->managedStreamers()->orderBy('stage_name')->get();
+            $kpis = $query->whereIn('streamer_id', $streamers->pluck('id'))->paginate(20);
         }
 
         return view('manager.kpis', compact('kpis', 'streamers', 'selectedMonth'));
@@ -41,28 +36,13 @@ class KpiController extends Controller
     /**
      * Thiết lập chỉ tiêu KPI cho Streamer (Dành cho Manager & Admin)
      */
-    public function store(Request $request)
+    public function store(StoreKpiRequest $request)
     {
-        $validated = $request->validate([
-            'streamer_id' => 'required|exists:streamer_profiles,id',
-            'month_year' => 'required|date_format:Y-m',
-            'target_hours' => 'required|numeric|min:1',
-            'target_revenue' => 'required|numeric|min:0',
-            'target_avg_viewers' => 'required|integer|min:0',
-        ], [
-            'streamer_id.required' => 'Vui lòng chọn Streamer.',
-            'month_year.required' => 'Vui lòng chọn tháng/năm áp dụng KPI.',
-            'target_hours.min' => 'Số giờ stream mục tiêu tối thiểu là 1 giờ.',
-            'target_revenue.min' => 'Doanh thu mục tiêu không thể là số âm.',
-        ]);
-
-        $user = Auth::user();
+        $validated = $request->validated();
         $streamer = StreamerProfile::findOrFail($validated['streamer_id']);
 
         // IDOR Check: Manager chỉ được đặt KPI cho Streamer mình quản lý
-        if (!$user->isAdmin() && $streamer->manager_id !== $user->id) {
-            abort(403, 'Bạn chỉ có quyền đặt mục tiêu KPI cho Streamer thuộc nhóm mình phụ trách.');
-        }
+        $this->authorize('manage', $streamer);
 
         Kpi::updateOrCreate(
             [

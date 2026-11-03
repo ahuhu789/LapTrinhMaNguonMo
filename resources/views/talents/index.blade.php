@@ -65,7 +65,15 @@
     </div>
 
     <!-- Talent Cards Grid -->
-    @if($talents->isEmpty())
+    @if($talents->isEmpty() && $talents instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator && $talents->total() > 0)
+        {{-- ?page= beyond the last page: results exist, just not on this page --}}
+        <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+            <i class="fas fa-file-circle-question text-4xl text-slate-300 mb-3"></i>
+            <h3 class="text-lg font-bold text-slate-700">Trang {{ $talents->currentPage() }} không có dữ liệu</h3>
+            <p class="text-sm text-slate-500 mt-1">Danh sách hiện chỉ có {{ $talents->lastPage() }} trang ({{ $talents->total() }} Talent).</p>
+            <a href="{{ $talents->withQueryString()->url(1) }}" class="inline-block mt-4 text-xs font-bold text-primary-600 hover:underline">Về trang đầu</a>
+        </div>
+    @elseif($talents->isEmpty())
         <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
             <i class="fas fa-user-slash text-4xl text-slate-300 mb-3"></i>
             <h3 class="text-lg font-bold text-slate-700">Không tìm thấy Talent phù hợp</h3>
@@ -77,7 +85,7 @@
             @foreach($talents as $talent)
                 <div class="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-200 overflow-hidden flex flex-col group">
                     <div class="h-28 bg-slate-200 relative overflow-hidden">
-                        <img src="{{ $talent->banner_url ?? 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800' }}" alt="Banner" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                        <img src="{{ $talent->banner_url ?? 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800' }}" alt="Banner" width="800" height="224" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                         <span class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-white/90 text-slate-800 backdrop-blur-sm shadow-sm">
                             {{ $talent->category }}
                         </span>
@@ -85,10 +93,10 @@
 
                     <div class="p-5 pt-0 flex-1 flex flex-col relative">
                         <div class="flex justify-between items-end -mt-8 mb-2">
-                            <img src="{{ $talent->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200' }}" alt="{{ $talent->stage_name }}" class="w-16 h-16 rounded-2xl border-4 border-white shadow-md object-cover">
+                            <img src="{{ $talent->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200' }}" alt="{{ $talent->stage_name }}" width="64" height="64" loading="lazy" decoding="async" class="w-16 h-16 rounded-2xl border-4 border-white shadow-md object-cover">
                             <div class="text-right">
                                 <span class="text-[10px] text-slate-400 block font-medium">Giá tham khảo</span>
-                                <span class="text-sm font-extrabold text-primary-600">{{ $talent->formatted_rate }}</span>
+                                <span class="text-sm font-extrabold text-primary-600"><x-money :amount="$talent->rate_per_hour" suffix="/giờ" /></span>
                             </div>
                         </div>
 
@@ -104,11 +112,11 @@
                         <div class="bg-slate-50 rounded-xl p-2.5 grid grid-cols-2 gap-2 text-center text-xs mb-3 border border-slate-100">
                             <div>
                                 <span class="text-slate-400 block text-[10px]">Avg Viewers</span>
-                                <span class="font-bold text-slate-800">{{ number_format($talent->avg_viewers) }}</span>
+                                <span class="font-bold text-slate-800">{{ number_format((float) ($talent->avg_viewers_calc ?? $talent->avg_viewers ?? 0), 0, ',', '.') }}</span>
                             </div>
                             <div>
                                 <span class="text-slate-400 block text-[10px]">Peak Viewers</span>
-                                <span class="font-bold text-indigo-600">{{ number_format($talent->peak_viewers) }}</span>
+                                <span class="font-bold text-indigo-600">{{ number_format((float) ($talent->peak_viewers_calc ?? $talent->peak_viewers ?? 0), 0, ',', '.') }}</span>
                             </div>
                         </div>
 
@@ -124,6 +132,13 @@
                 </div>
             @endforeach
         </div>
+
+        {{-- Pagination: only rendered when the controller returns a paginator (paginate(12)); a plain Collection still works --}}
+        @if($talents instanceof \Illuminate\Contracts\Pagination\Paginator && $talents->hasPages())
+            <div class="mt-8">
+                {{ $talents->withQueryString()->links() }}
+            </div>
+        @endif
     @endif
 </div>
 @endsection

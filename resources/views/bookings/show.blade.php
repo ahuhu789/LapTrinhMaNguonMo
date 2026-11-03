@@ -10,29 +10,52 @@
         <div>
             <div class="flex items-center space-x-3">
                 <h2 class="text-2xl font-black text-slate-900">Hợp Đồng Booking #{{ $booking->id }}</h2>
-                <span class="px-3 py-1 rounded-full text-xs font-bold border {{ $booking->status_badge_class }}">
-                    {{ $booking->status_label }}
-                </span>
+                <x-booking-status :status="$booking->status" size="lg" />
             </div>
-            <p class="text-xs text-slate-400 mt-1">Khởi tạo lúc: {{ $booking->created_at->format('H:i d/m/Y') }}</p>
+            <p class="text-xs text-slate-400 mt-1">Khởi tạo lúc: <x-datetime :value="$booking->created_at" /></p>
         </div>
 
+        @php
+            $canManageBooking = Auth::user()->isAdmin()
+                || (Auth::user()->isManager() && ($booking->manager_id === Auth::id() || $booking->streamer->manager_id === Auth::id()));
+            // Booking::isRejectable() lives on the backend branch; fall back to the same rule (pending only).
+            $isRejectable = method_exists($booking, 'isRejectable')
+                ? $booking->isRejectable()
+                : in_array($booking->status, ['pending'], true);
+            $canRejectBooking = $canManageBooking && $isRejectable;
+            $isApprovable = method_exists($booking, 'isApprovable')
+                ? $booking->isApprovable()
+                : in_array($booking->status, ['pending', 'reviewing'], true);
+            $canApproveBooking = $canManageBooking && $isApprovable;
+            // $conflictInfo now only reports conflicts that block approval.
+            $approvalBlocked = !empty($conflictInfo['has_conflict']);
+        @endphp
+
         <!-- Approval / Rejection Actions for Manager / Admin -->
-        @if((Auth::user()->isAdmin() || (Auth::user()->isManager() && ($booking->manager_id === Auth::id() || $booking->streamer->manager_id === Auth::id()))) && in_array($booking->status, ['pending', 'reviewing']))
+        @if($canRejectBooking || $canApproveBooking)
             <div class="flex items-center space-x-3">
+                @if($canRejectBooking)
                 <!-- Reject Button Trigger -->
                 <button type="button" onclick="openRejectModal()" class="px-4 py-2.5 rounded-xl border border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs transition">
                     <i class="fas fa-ban mr-1"></i> Từ Chối
                 </button>
+                @endif
 
+                @if($canApproveBooking && $approvalBlocked && $canRejectBooking)
+                <button type="button" disabled title="Không thể duyệt: khung giờ trùng lịch đã khóa" class="px-5 py-2.5 rounded-xl bg-slate-200 text-slate-500 font-bold text-xs cursor-not-allowed flex items-center space-x-1.5">
+                    <i class="fas fa-lock"></i>
+                    <span>Không thể duyệt (trùng lịch)</span>
+                </button>
+                @elseif($canApproveBooking)
                 <!-- Approve Button (with Collision Lock) -->
-                <form action="{{ route('bookings.approve', $booking->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn duyệt và khóa lịch trình cho Talent này?');">
+                <form action="{{ route('bookings.approve', $booking->id) }}" method="POST" onsubmit="return confirm({{ $approvalBlocked ? "'Khung giờ đang trùng lịch đã khóa: hệ thống sẽ tự động từ chối đơn này. Tiếp tục?'" : "'Duyệt và khóa lịch cho Talent này? Các booking chờ duyệt khác trùng khung giờ sẽ được tự động từ chối.'" }});">
                     @csrf
                     <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 transition flex items-center space-x-1.5">
                         <i class="fas fa-check-double"></i>
                         <span>Phê Duyệt & Khóa Lịch</span>
                     </button>
                 </form>
+                @endif
             </div>
         @endif
     </div>
@@ -43,31 +66,50 @@
             <div class="flex items-start space-x-3">
                 <i class="fas fa-triangle-exclamation text-rose-600 text-2xl mt-0.5"></i>
                 <div>
-                    <h4 class="font-extrabold text-sm text-rose-800 uppercase tracking-wide">Phát Hiện Xung Đột Lịch Trình (Collision Detected!)</h4>
-                    <p class="text-xs text-rose-700 mt-1">
-                        {{ $conflictInfo['message'] }}
+                    <h4 class="font-extrabold text-sm text-rose-800 uppercase tracking-wide">Chưa thể phê duyệt: trùng lịch đã khóa</h4>
+                    <p class="text-xs text-rose-700 mt-1 break-words">
+                        {{ $conflictInfo['message'] ?? 'Khung giờ này trùng với lịch đã được khóa của Talent.' }}
                     </p>
                     <p class="text-xs text-rose-600 font-semibold mt-2">
-                        * Bạn cần từ chối đơn này hoặc yêu cầu khách hàng chọn khung giờ khác trước khi có thể duyệt.
+                        * Khung giờ đang trùng với lịch đã khóa của Talent hoặc một booking đã duyệt khác của khách hàng, nên đơn này không thể được duyệt. {{ $canRejectBooking ? 'Nút duyệt đã được khóa; có thể từ chối đơn hoặc đề nghị khách hàng chọn khung giờ khác.' : 'Nếu vẫn bấm duyệt, hệ thống sẽ tự động từ chối đơn kèm lý do.' }}
                     </p>
                 </div>
             </div>
         </div>
-    @elseif(in_array($booking->status, ['pending', 'reviewing']))
-        <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-6 text-emerald-800 flex items-center shadow-sm text-xs font-semibold">
+    @elseif($canApproveBooking)
+        <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-6 text-emerald-800 flex items-start shadow-sm text-xs font-semibold">
             <i class="fas fa-circle-check text-emerald-600 text-base mr-2"></i>
-            <span>Khung giờ khả dụng: Streamer hoàn toàn không bị trùng lịch nào trong thời gian diễn ra chiến dịch.</span>
+            <span>Khung giờ khả dụng: không trùng lịch đã khóa của Talent. Khi phê duyệt, các booking chờ duyệt khác trùng khung giờ (nếu có) sẽ được hệ thống tự động từ chối.</span>
         </div>
     @endif
 
     <!-- Rejection Reason if Rejected -->
     @if($booking->status === 'rejected')
-        <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 mb-6 text-rose-900">
-            <h4 class="font-bold text-sm text-rose-800 flex items-center mb-1">
-                <i class="fas fa-circle-xmark mr-2 text-rose-600"></i> Lý do từ chối từ Manager:
-            </h4>
-            <p class="text-xs text-rose-700 pl-6">{{ $booking->reject_reason }}</p>
-        </div>
+        @php
+            $rejectReason = trim((string) ($booking->rejection_reason ?? $booking->reject_reason ?? ''));
+            $autoPrefix = 'Tự động từ chối:';
+            // Contract: auto reasons start with 'Tự động từ chối:'. Cascade reasons currently
+            // written by backend without the prefix are recognised too (see report).
+            $isAutoRejected = str_starts_with($rejectReason, $autoPrefix)
+                || str_starts_with($rejectReason, 'Xung đột với lịch đã được duyệt')
+                || (bool) preg_match('/^Xung đột với booking #\d+ của bạn đã được duyệt/u', $rejectReason);
+            $reasonText = $isAutoRejected ? trim(mb_substr($rejectReason, mb_strlen($autoPrefix))) : $rejectReason;
+        @endphp
+        @if($isAutoRejected)
+            <div class="bg-amber-50 border border-amber-300 rounded-2xl p-5 mb-6 text-amber-900" role="alert">
+                <h4 class="font-bold text-sm text-amber-800 flex items-center mb-1">
+                    <i class="fas fa-robot mr-2 text-amber-600"></i> Hệ thống đã tự động từ chối booking này
+                </h4>
+                <p class="text-xs text-amber-800 pl-6 break-words"><span class="font-semibold">Lý do:</span> {{ $reasonText !== '' ? $reasonText : 'Trùng khung giờ với một booking khác đã được duyệt.' }}</p>
+            </div>
+        @else
+            <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 mb-6 text-rose-900" role="alert">
+                <h4 class="font-bold text-sm text-rose-800 flex items-center mb-1">
+                    <i class="fas fa-circle-xmark mr-2 text-rose-600"></i> Booking đã bị từ chối
+                </h4>
+                <p class="text-xs text-rose-700 pl-6 break-words"><span class="font-semibold">Lý do:</span> {{ $reasonText !== '' ? $reasonText : 'Không có lý do cụ thể được ghi nhận.' }}</p>
+            </div>
+        @endif
     @endif
 
     <!-- 2 Column Details: Parties & Financials -->
@@ -94,7 +136,7 @@
                 <div class="flex-1">
                     <span class="text-xs text-slate-400 block">Talent Streamer</span>
                     <div class="font-bold text-slate-900 text-sm">{{ $booking->streamer->stage_name }}</div>
-                    <span class="text-xs text-slate-500">{{ $booking->streamer->category }} • Giá: {{ $booking->streamer->formatted_rate }}</span>
+                    <span class="text-xs text-slate-500">{{ $booking->streamer->category }} • Giá: <x-money :amount="$booking->streamer->rate_per_hour" suffix="/giờ" /></span>
                 </div>
                 <a href="{{ route('talents.show', $booking->streamer->id) }}" target="_blank" class="text-xs font-semibold text-primary-600 hover:underline">
                     Media Kit
@@ -113,11 +155,11 @@
             <div class="space-y-2 text-xs">
                 <div class="flex justify-between py-1.5 border-b border-slate-100">
                     <span class="text-slate-500">Bắt đầu:</span>
-                    <span class="font-bold text-slate-800">{{ $booking->start_time->format('H:i, ngày d/m/Y') }}</span>
+                    <span class="font-bold text-slate-800"><x-datetime :value="$booking->start_time" /></span>
                 </div>
                 <div class="flex justify-between py-1.5 border-b border-slate-100">
                     <span class="text-slate-500">Kết thúc:</span>
-                    <span class="font-bold text-slate-800">{{ $booking->end_time->format('H:i, ngày d/m/Y') }}</span>
+                    <span class="font-bold text-slate-800"><x-datetime :value="$booking->end_time" /></span>
                 </div>
                 <div class="flex justify-between py-1.5 border-b border-slate-100">
                     <span class="text-slate-500">Tổng thời lượng stream:</span>
@@ -129,15 +171,15 @@
             <div class="p-4 rounded-xl bg-slate-900 text-white space-y-2 text-xs">
                 <div class="flex justify-between">
                     <span class="text-slate-300">Tổng ngân sách nhãn hàng chi trả:</span>
-                    <span class="font-black text-emerald-400 text-sm">{{ $booking->formatted_budget }}</span>
+                    <span class="font-black text-emerald-400 text-sm"><x-money :amount="$booking->budget" /></span>
                 </div>
                 <div class="flex justify-between text-slate-400">
-                    <span>Hoa hồng Agency ({{ $booking->commission_rate }}%):</span>
-                    <span>- {{ number_format($booking->agency_commission, 0, ',', '.') }} đ</span>
+                    <span>Hoa hồng Agency ({{ rtrim(rtrim(number_format((float) ($booking->commission_rate ?? config('mcn.commission_rate', 15)), 2, ',', '.'), '0'), ',') }}%):</span>
+                    <span><x-money :amount="$booking->agency_commission" sign="- " /></span>
                 </div>
                 <div class="flex justify-between pt-2 border-t border-slate-800 font-bold text-slate-200">
                     <span>Thù lao thực nhận của Streamer:</span>
-                    <span class="text-amber-300 font-extrabold">{{ number_format($booking->streamer_net_income, 0, ',', '.') }} đ</span>
+                    <span class="text-amber-300 font-extrabold"><x-money :amount="$booking->streamer_net_income" /></span>
                 </div>
             </div>
         </div>
@@ -152,16 +194,21 @@
     </div>
 </div>
 
+@if($canRejectBooking)
 <!-- Modal Reject -->
-<div id="reject-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+<div id="reject-modal" class="{{ $errors->has('reject_reason') ? '' : 'hidden' }} fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
         <h3 class="text-lg font-bold text-slate-900 mb-2">Từ Chối Booking</h3>
         <p class="text-xs text-slate-500 mb-4">Vui lòng cung cấp lý do từ chối để hệ thống phản hồi đến đối tác.</p>
         
         <form action="{{ route('bookings.reject', $booking->id) }}" method="POST">
             @csrf
-            <textarea name="reject_reason" rows="3" required placeholder="Nhập lý do từ chối (trùng lịch, không phù hợp định hướng...)"
-                class="w-full text-xs border border-slate-300 rounded-xl p-3 focus:ring-2 focus:ring-rose-500 mb-4"></textarea>
+            <textarea name="reject_reason" rows="3" required minlength="5" maxlength="500" placeholder="Nhập lý do từ chối (trùng lịch, không phù hợp định hướng...)"
+                @error('reject_reason') aria-invalid="true" @enderror
+                class="w-full text-xs border {{ $errors->has('reject_reason') ? 'border-rose-400' : 'border-slate-300' }} rounded-xl p-3 focus:ring-2 focus:ring-rose-500 {{ $errors->has('reject_reason') ? 'mb-1' : 'mb-4' }}">{{ old('reject_reason') }}</textarea>
+            @error('reject_reason')
+                <p class="text-[11px] font-semibold text-rose-600 mb-4" role="alert">{{ $message }}</p>
+            @enderror
 
             <div class="flex justify-end space-x-2">
                 <button type="button" onclick="closeRejectModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl">
@@ -183,4 +230,5 @@ function closeRejectModal() {
     document.getElementById('reject-modal').classList.add('hidden');
 }
 </script>
+@endif
 @endsection

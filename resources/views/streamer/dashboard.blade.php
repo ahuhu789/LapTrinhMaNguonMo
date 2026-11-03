@@ -8,7 +8,7 @@
     <!-- Streamer Hero Banner -->
     <div class="bg-gradient-to-r from-slate-900 to-emerald-950 rounded-3xl p-6 sm:p-8 text-white shadow-md flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
         <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-5 text-center sm:text-left">
-            <img src="{{ $profile->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200' }}" class="w-20 h-20 rounded-2xl border-2 border-emerald-500/50 shadow-lg object-cover">
+            <img src="{{ $profile->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200' }}" alt="{{ $profile->stage_name ?? 'Avatar' }}" width="80" height="80" decoding="async" class="w-20 h-20 rounded-2xl border-2 border-emerald-500/50 shadow-lg object-cover">
             <div>
                 <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     {{ $profile->category }}
@@ -36,7 +36,7 @@
             <div>
                 <h3 class="font-bold text-slate-900 text-sm flex items-center space-x-2">
                     <i class="fas fa-bullseye text-emerald-600"></i>
-                    <span>Chỉ Tiêu KPI Tháng Này ({{ \Carbon\Carbon::now()->format('m/Y') }})</span>
+                    <span>Chỉ Tiêu KPI Tháng Này (<x-datetime :value="now()" format="m/Y" />)</span>
                 </h3>
                 <p class="text-xs text-slate-400 mt-0.5">Dữ liệu được cập nhật tự động qua các buổi stream và booking đã hoàn tất.</p>
             </div>
@@ -65,7 +65,7 @@
                 <div class="p-4 rounded-xl bg-slate-50 border border-slate-100">
                     <div class="flex justify-between text-xs font-bold mb-2">
                         <span class="text-slate-600">Doanh thu Booking:</span>
-                        <span class="text-emerald-600">{{ $currentKpi->formatted_achieved_revenue }} / {{ $currentKpi->formatted_target_revenue }}</span>
+                        <span class="text-emerald-600"><x-money :amount="$currentKpi->achieved_revenue" /> / <x-money :amount="$currentKpi->target_revenue" /></span>
                     </div>
                     <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
                         <div class="bg-indigo-500 h-3 rounded-full transition-all duration-500" style="width: {{ $currentKpi->revenue_progress_percentage }}%"></div>
@@ -99,12 +99,12 @@
                         <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition text-xs">
                             <div class="flex justify-between items-start mb-1">
                                 <span class="font-bold text-slate-900">{{ $ub->client->name }}</span>
-                                <span class="font-black text-emerald-600">{{ number_format($ub->streamer_net_income, 0, ',', '.') }} đ</span>
+                                <span class="font-black text-emerald-600"><x-money :amount="$ub->streamer_net_income" /></span>
                             </div>
                             <p class="text-slate-500 line-clamp-1 mb-2">{{ $ub->job_description }}</p>
                             <div class="flex justify-between items-center text-[11px] text-slate-400 border-t border-slate-100 pt-2">
-                                <span><i class="far fa-clock mr-1"></i> {{ $ub->start_time->format('H:i d/m') }} - {{ $ub->end_time->format('H:i d/m/Y') }}</span>
-                                <span class="px-2 py-0.5 rounded font-bold {{ $ub->status_badge_class }}">{{ $ub->status_label }}</span>
+                                <span><i class="far fa-clock mr-1"></i> <x-datetime-range :start="$ub->start_time" :end="$ub->end_time" /></span>
+                                <x-booking-status :status="$ub->status" size="sm" />
                             </div>
                         </div>
                     @endforeach
@@ -132,8 +132,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const ctx = document.getElementById('streamerTrendChart');
     if (!ctx) return;
 
-    const rawDates = {!! json_encode($chartMetrics->pluck('stream_date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d/m'))) !!};
-    const rawAvg = {!! json_encode($chartMetrics->pluck('avg_viewers')) !!};
+    const rawDates = {{ Js::from($chartMetrics->pluck('stream_date')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d/m'))) }};
+    const rawAvg = {{ Js::from($chartMetrics->pluck('avg_viewers')) }};
 
     new Chart(ctx, {
         type: 'line',

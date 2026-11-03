@@ -56,16 +56,14 @@
                                     <span class="text-[11px] text-slate-400">QL: {{ $b->manager->name ?? 'Chưa gán' }}</span>
                                 </td>
                                 <td class="py-3.5 px-4 text-xs">
-                                    <div class="font-semibold text-slate-800">{{ $b->start_time->format('H:i d/m/Y') }}</div>
-                                    <div class="text-slate-400">đến {{ $b->end_time->format('H:i d/m/Y') }} ({{ $b->duration_hours }}h)</div>
+                                    <div class="font-semibold text-slate-800"><x-datetime :value="$b->start_time" /></div>
+                                    <div class="text-slate-400">đến <x-datetime :value="$b->end_time" /> ({{ $b->duration_hours }}h)</div>
                                 </td>
                                 <td class="py-3.5 px-4 font-extrabold text-slate-900">
-                                    {{ $b->formatted_budget }}
+                                    <x-money :amount="$b->budget" />
                                 </td>
                                 <td class="py-3.5 px-4">
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold border {{ $b->status_badge_class }}">
-                                        {{ $b->status_label }}
-                                    </span>
+                                    <x-booking-status :status="$b->status" />
                                 </td>
                                 <td class="py-3.5 px-4 text-right space-x-2">
                                     <a href="{{ route('bookings.show', $b->id) }}" class="inline-block px-3 py-1.5 rounded-lg border border-slate-300 hover:border-primary-500 hover:text-primary-600 font-semibold text-xs transition">

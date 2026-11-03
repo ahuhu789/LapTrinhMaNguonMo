@@ -33,7 +33,7 @@
             </div>
             <div>
                 <span class="text-xs font-semibold text-slate-400 uppercase">Doanh Số Tháng Này</span>
-                <div class="text-2xl font-black text-emerald-600">{{ number_format($teamRevenue, 0, ',', '.') }} đ</div>
+                <div class="text-2xl font-black text-emerald-600"><x-money :amount="$teamRevenue" /></div>
             </div>
         </div>
     </div>
@@ -72,8 +72,8 @@
                                 <td class="py-3 px-4 font-mono font-bold">#{{ $pb->id }}</td>
                                 <td class="py-3 px-4 font-semibold text-slate-800">{{ $pb->client->name }}</td>
                                 <td class="py-3 px-4 font-bold text-slate-900">{{ $pb->streamer->stage_name }}</td>
-                                <td class="py-3 px-4">{{ $pb->start_time->format('H:i d/m') }} - {{ $pb->end_time->format('H:i d/m/Y') }}</td>
-                                <td class="py-3 px-4 font-extrabold text-emerald-600">{{ $pb->formatted_budget }}</td>
+                                <td class="py-3 px-4"><x-datetime-range :start="$pb->start_time" :end="$pb->end_time" /></td>
+                                <td class="py-3 px-4 font-extrabold text-emerald-600"><x-money :amount="$pb->budget" /></td>
                                 <td class="py-3 px-4 text-right">
                                     <a href="{{ route('bookings.show', $pb->id) }}" class="px-3 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-bold transition">
                                         Xem & Phê Duyệt
@@ -113,11 +113,11 @@
                         @php $kpi = $st->currentKpi; @endphp
                         <tr class="hover:bg-slate-50">
                             <td class="py-3 px-4 font-bold text-slate-900 flex items-center space-x-2">
-                                <img src="{{ $st->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100' }}" class="w-7 h-7 rounded-full object-cover">
+                                <img src="{{ $st->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100' }}" alt="" width="28" height="28" loading="lazy" decoding="async" class="w-7 h-7 rounded-full object-cover">
                                 <span>{{ $st->stage_name }}</span>
                             </td>
                             <td class="py-3 px-4 text-slate-600">{{ $st->category }}</td>
-                            <td class="py-3 px-4 font-semibold text-slate-800">{{ $st->formatted_rate }}</td>
+                            <td class="py-3 px-4 font-semibold text-slate-800"><x-money :amount="$st->rate_per_hour" suffix="/giờ" /></td>
                             <td class="py-3 px-4">
                                 @if($kpi)
                                     <div class="flex items-center space-x-2">

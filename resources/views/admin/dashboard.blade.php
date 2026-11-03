@@ -35,7 +35,7 @@
             </div>
             <div>
                 <span class="text-xs font-semibold text-slate-400 uppercase">Tổng Doanh Thu Sàn</span>
-                <div class="text-2xl font-black text-emerald-600">{{ number_format($stats['total_revenue'], 0, ',', '.') }} đ</div>
+                <div class="text-2xl font-black text-emerald-600"><x-money :amount="$stats['total_revenue']" /></div>
                 <span class="text-[11px] text-emerald-600 font-semibold">Tất cả chiến dịch</span>
             </div>
         </div>
@@ -45,8 +45,8 @@
                 <i class="fas fa-wallet"></i>
             </div>
             <div>
-                <span class="text-xs font-semibold text-slate-400 uppercase">Hoa Hồng Agency (15%)</span>
-                <div class="text-2xl font-black text-indigo-600">{{ number_format($stats['total_commission'], 0, ',', '.') }} đ</div>
+                <span class="text-xs font-semibold text-slate-400 uppercase">Hoa Hồng Agency ({{ rtrim(rtrim(number_format((float) config('mcn.commission_rate', 15), 2, ',', '.'), '0'), ',') }}%)</span>
+                <div class="text-2xl font-black text-indigo-600"><x-money :amount="$stats['total_commission']" /></div>
                 <span class="text-[11px] text-indigo-600 font-semibold">Lợi nhuận gộp MCN</span>
             </div>
         </div>
@@ -81,11 +81,9 @@
                                 <td class="py-3 px-4 font-mono font-bold">#{{ $rb->id }}</td>
                                 <td class="py-3 px-4 font-semibold text-slate-800">{{ $rb->client->name }}</td>
                                 <td class="py-3 px-4 font-bold text-slate-900">{{ $rb->streamer->stage_name }}</td>
-                                <td class="py-3 px-4 font-extrabold text-slate-800">{{ $rb->formatted_budget }}</td>
+                                <td class="py-3 px-4 font-extrabold text-slate-800"><x-money :amount="$rb->budget" /></td>
                                 <td class="py-3 px-4">
-                                    <span class="px-2 py-0.5 rounded-full font-bold border text-[10px] {{ $rb->status_badge_class }}">
-                                        {{ $rb->status_label }}
-                                    </span>
+                                    <x-booking-status :status="$rb->status" size="sm" />
                                 </td>
                                 <td class="py-3 px-4 text-right">
                                     <a href="{{ route('bookings.show', $rb->id) }}" class="text-primary-600 hover:underline font-bold">
@@ -112,13 +110,13 @@
                 @foreach($activeTalents as $at)
                     <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
                         <div class="flex items-center space-x-2.5">
-                            <img src="{{ $at->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100' }}" class="w-8 h-8 rounded-full object-cover">
+                            <img src="{{ $at->avatar_url ?? 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=100' }}" alt="" width="32" height="32" loading="lazy" decoding="async" class="w-8 h-8 rounded-full object-cover">
                             <div>
                                 <div class="font-bold text-slate-900">{{ $at->stage_name }}</div>
                                 <span class="text-[10px] text-slate-400">QL: {{ $at->manager->name ?? 'Chưa gán' }}</span>
                             </div>
                         </div>
-                        <span class="font-semibold text-primary-600 text-[11px]">{{ $at->formatted_rate }}</span>
+                        <span class="font-semibold text-primary-600 text-[11px]"><x-money :amount="$at->rate_per_hour" suffix="/giờ" /></span>
                     </div>
                 @endforeach
             </div>
