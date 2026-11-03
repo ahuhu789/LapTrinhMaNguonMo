@@ -3,7 +3,10 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\NormalizesDateTimes;
+use App\Models\Booking;
 use App\Models\StreamerProfile;
+use Illuminate\Auth\Access\Response;
+use Illuminate\Support\Facades\Gate;
 use App\Services\BookingPricing;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
@@ -13,9 +16,10 @@ class StoreBookingRequest extends FormRequest
 {
     use NormalizesDateTimes;
 
-    public function authorize(): bool
+    public function authorize(): Response
     {
-        return $this->user() !== null;
+        // BookingPolicy@create: chỉ client (streamer/manager/admin -> 403 kèm thông báo tiếng Việt)
+        return Gate::inspect('create', Booking::class);
     }
 
     public function rules(): array

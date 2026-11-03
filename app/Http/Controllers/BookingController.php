@@ -51,6 +51,8 @@ class BookingController extends Controller
      */
     public function create(Request $request)
     {
+        $this->authorize('create', Booking::class);
+
         $selectedStreamerId = $request->query('streamer_id');
         $selectedStreamer = null;
 
