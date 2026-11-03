@@ -8,6 +8,8 @@ use App\Http\Requests\StoreBookingRequest;
 use App\Models\Booking;
 use App\Models\StreamerProfile;
 use App\Services\BookingCollisionService;
+use App\Services\BookingPricing;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -84,9 +86,14 @@ class BookingController extends Controller
     /**
      * Kiểm tra nhanh xung đột lịch (AJAX live validation trên form booking)
      */
-    public function checkCollision(CheckCollisionRequest $request, BookingCollisionService $collisionService): JsonResponse
+    public function checkCollision(CheckCollisionRequest $request, BookingCollisionService $collisionService, BookingPricing $pricing): JsonResponse
     {
         $validated = $request->validated();
+        $quote = $pricing->quote(
+            StreamerProfile::findOrFail($validated['streamer_id']),
+            Carbon::parse($validated['start_time']),
+            Carbon::parse($validated['end_time'])
+        );
 
         // Quy tắc 1 (lịch talent) + quy tắc 2 (booking của chính người dùng đang đăng nhập)
         $result = $collisionService->checkCollision(
@@ -104,6 +111,12 @@ class BookingController extends Controller
             // cảnh báo mềm: booking pending/reviewing của client khác cùng khung giờ (không chặn)
             'pending_count' => (int) $result['pending_count'],
             'warnings' => $result['warnings'],
+            // báo giá tối thiểu: hours (theo phút) × rate_per_hour, làm tròn lên 1 đồng
+            'min_budget' => $quote['min_budget'],
+            'min_budget_label' => $quote['label'],
+            'hours' => $quote['hours'],
+            'duration_minutes' => $quote['minutes'],
+            'rate_per_hour' => $quote['rate_per_hour'],
         ]);
     }
 

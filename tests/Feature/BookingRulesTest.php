@@ -57,7 +57,7 @@ class BookingRulesTest extends TestCase
             'start_time' => $this->at($from),
             'end_time' => $this->at($to),
             'job_description' => 'Livestream giới thiệu sản phẩm mới',
-            'budget' => 2000000,
+            'budget' => 100000000,
         ], $extra));
     }
 
@@ -101,7 +101,7 @@ class BookingRulesTest extends TestCase
             'start_time' => '2026-11-05T07:00:00Z', // = 14:00 giờ Việt Nam
             'end_time' => '2026-11-05T09:00:00Z',
             'job_description' => 'Livestream giới thiệu sản phẩm mới',
-            'budget' => 2000000,
+            'budget' => 100000000,
         ])->assertSessionHas('success');
 
         $this->assertSame('2026-11-05 14:00:00', $this->lastBooking()->getRawOriginal('start_time'));
