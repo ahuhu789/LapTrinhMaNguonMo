@@ -58,6 +58,12 @@
                 <span id="time-error-text"></span>
             </div>
 
+            <!-- Soft warning: other pending requests in the same slot (F2) -->
+            <div id="pending-warning" class="hidden p-4 rounded-xl text-xs font-semibold flex items-center border bg-amber-50 text-amber-800 border-amber-200">
+                <i class="fas fa-circle-info mr-2 text-base text-amber-600"></i>
+                <span id="pending-warning-text"></span>
+            </div>
+
             <!-- Live Collision Feedback Box -->
             <div id="collision-alert" class="hidden p-4 rounded-xl text-xs font-semibold flex items-center">
                 <i id="collision-icon" class="mr-2 text-base"></i>
@@ -70,11 +76,16 @@
                     4. Tổng Ngân Sách Dự Kiến (đ) <span class="text-rose-500">*</span>
                 </label>
                 <div class="relative">
-                    <input type="number" name="budget" id="budget" value="{{ old('budget', '3000000') }}" min="100000" step="50000" required
+                    <input type="number" name="budget" id="budget" value="{{ old('budget', '3000000') }}" min="100000" required
                         placeholder="VD: 3000000"
                         class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary-500 text-sm font-bold text-slate-800">
                     <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-xs font-bold text-slate-400">đ</span>
                 </div>
+                <div id="budget-min-info" class="hidden mt-2 text-xs font-semibold text-slate-600 flex flex-wrap items-center gap-2">
+                    <span id="budget-min-text"></span>
+                    <button type="button" id="budget-use-min" class="px-2.5 py-1 rounded-lg bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 text-[11px] font-bold">Dùng mức tối thiểu</button>
+                </div>
+                <p id="budget-error" class="hidden mt-1 text-xs font-semibold text-rose-600" role="alert"></p>
                 {{-- mcn.commission_rate is a percentage (e.g. 15.00 = 15%); default matches backend config/mcn.php --}}
                 <p class="text-xs text-slate-400 mt-1">Đã bao gồm phí hoa hồng quản lý agency {{ rtrim(rtrim(number_format((float) config('mcn.commission_rate', 15), 2, ',', '.'), '0'), ',') }}%.</p>
             </div>
@@ -257,6 +268,79 @@ document.addEventListener('DOMContentLoaded', function () {
         el.addEventListener('change', function () { validateTimes(); scheduleCollisionCheck(); });
     });
     validateTimes();
+
+    // ---- Budget minimum (F2) ----
+    const budgetInput = document.getElementById('budget');
+    const minInfo = document.getElementById('budget-min-info');
+    const minText = document.getElementById('budget-min-text');
+    const budgetError = document.getElementById('budget-error');
+    const useMinBtn = document.getElementById('budget-use-min');
+    const pendingBox = document.getElementById('pending-warning');
+    const pendingText = document.getElementById('pending-warning-text');
+    let serverMin = null; // min_budget from check-collision (if backend provides it)
+    let currentMin = 0;
+
+    const fmtMoney = (n) => Math.round(n).toLocaleString('de-DE') + 'đ';
+    const fmtHours = (h) => (Math.round(h * 100) / 100).toLocaleString('vi-VN');
+
+    function validateBudget() {
+        const opt = streamerSelect.options[streamerSelect.selectedIndex];
+        const rate = parseFloat(opt ? opt.dataset.rate : '') || 0;
+        const s = parseLocal(startInput.value), e = parseLocal(endInput.value);
+        const hours = (s && e && e > s) ? (e - s) / 3600000 : 0;
+        currentMin = 0;
+        if (serverMin !== null && serverMin > 0) currentMin = serverMin;
+        else if (rate > 0 && hours > 0) currentMin = Math.ceil(hours * rate);
+
+        if (currentMin > 0) {
+            minText.textContent = (rate > 0 && hours > 0)
+                ? 'Tối thiểu: ' + fmtMoney(currentMin) + ' = ' + fmtHours(hours) + ' giờ × ' + fmtMoney(rate) + '/giờ'
+                : 'Tối thiểu: ' + fmtMoney(currentMin);
+            minInfo.classList.remove('hidden');
+        } else {
+            minInfo.classList.add('hidden');
+        }
+
+        const val = parseFloat(budgetInput.value);
+        let msg = '';
+        if (currentMin > 0 && !(val >= currentMin)) msg = 'Ngân sách thấp hơn mức tối thiểu ' + fmtMoney(currentMin) + '. Vui lòng tăng ngân sách.';
+        else if (budgetInput.value !== '' && val < 100000) msg = 'Ngân sách tối thiểu là 100.000đ.';
+        formErrors.budget = !!msg;
+        budgetError.textContent = msg;
+        budgetError.classList.toggle('hidden', !msg);
+        budgetInput.classList.toggle('border-rose-400', !!msg);
+        budgetInput.classList.toggle('bg-rose-50', !!msg);
+        refreshSubmit();
+    }
+
+    useMinBtn.addEventListener('click', function () {
+        if (currentMin > 0) { budgetInput.value = currentMin; validateBudget(); }
+    });
+    budgetInput.addEventListener('input', validateBudget);
+    [streamerSelect, startInput, endInput].forEach(function (el) {
+        el.addEventListener('change', function () { serverMin = null; pendingBox.classList.add('hidden'); validateBudget(); });
+    });
+
+    window.onCollisionData = function (data) {
+        data = data || {};
+        const mb = parseFloat(data.min_budget);
+        serverMin = isFinite(mb) && mb > 0 ? mb : null;
+        let count = 0;
+        if (typeof data.pending_count === 'number') count = data.pending_count;
+        else if (Array.isArray(data.pending)) count = data.pending.length;
+        else if (typeof data.pending === 'number') count = data.pending;
+        else if (data.has_pending === true || data.pending === true) count = -1;
+        if (count !== 0 && data.has_conflict !== true) {
+            pendingText.textContent = count > 0
+                ? 'Lưu ý: đã có ' + count + ' yêu cầu booking khác đang chờ duyệt trong khung giờ này. Bạn vẫn có thể gửi, Manager sẽ xét duyệt.'
+                : 'Lưu ý: đã có yêu cầu booking khác đang chờ duyệt trong khung giờ này. Bạn vẫn có thể gửi, Manager sẽ xét duyệt.';
+            pendingBox.classList.remove('hidden');
+        } else {
+            pendingBox.classList.add('hidden');
+        }
+        validateBudget();
+    };
+    validateBudget();
     // Prefilled form (e.g. ?streamer_id=…, or old() input after a failed submit)
     if (streamerSelect.value && startInput.value && endInput.value) scheduleCollisionCheck();
 });
