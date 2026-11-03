@@ -52,6 +52,12 @@
                 </div>
             </div>
 
+            <!-- Live time validation (F1) -->
+            <div id="time-error" class="hidden p-4 rounded-xl text-xs font-semibold flex items-center border bg-rose-50 text-rose-800 border-rose-200" role="alert">
+                <i class="fas fa-triangle-exclamation mr-2 text-base text-rose-600"></i>
+                <span id="time-error-text"></span>
+            </div>
+
             <!-- Live Collision Feedback Box -->
             <div id="collision-alert" class="hidden p-4 rounded-xl text-xs font-semibold flex items-center">
                 <i id="collision-icon" class="mr-2 text-base"></i>
@@ -87,7 +93,7 @@
                 <a href="{{ url()->previous() }}" class="text-slate-500 hover:text-slate-700 text-sm font-semibold">
                     <i class="fas fa-arrow-left mr-1"></i> Quay lại
                 </a>
-                <button type="submit" class="px-8 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-lg shadow-primary-500/25 transition flex items-center space-x-2">
+                <button type="submit" id="submit-btn" class="disabled:opacity-50 disabled:cursor-not-allowed px-8 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-lg shadow-primary-500/25 transition flex items-center space-x-2">
                     <i class="fas fa-paper-plane"></i>
                     <span>Gửi Yêu Cầu Booking</span>
                 </button>
@@ -138,13 +144,47 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let requestSeq = 0;
 
+    // ---- Live client-side validation (start in past / end <= start) ----
+    const timeErrorBox = document.getElementById('time-error');
+    const timeErrorText = document.getElementById('time-error-text');
+    const submitBtn = document.getElementById('submit-btn');
+    const formErrors = { time: false, conflict: false, budget: false };
+
+    function parseLocal(v) {
+        if (!v) return null;
+        const m = String(v).trim().match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+        if (!m) return null;
+        return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+    }
+
+    function refreshSubmit() {
+        const blocked = Object.values(formErrors).some(Boolean);
+        submitBtn.disabled = blocked;
+        submitBtn.title = blocked ? 'Vui lòng sửa các lỗi phía trên trước khi gửi.' : '';
+    }
+
+    function validateTimes() {
+        const s = parseLocal(startInput.value);
+        const e = parseLocal(endInput.value);
+        let msg = '';
+        if (s && s.getTime() <= Date.now()) msg = 'Thời gian bắt đầu phải ở tương lai.';
+        else if (s && e && e.getTime() <= s.getTime()) msg = 'Thời gian kết thúc phải sau thời gian bắt đầu.';
+        formErrors.time = !!msg;
+        timeErrorText.textContent = msg;
+        timeErrorBox.classList.toggle('hidden', !msg);
+        refreshSubmit();
+        return !msg;
+    }
+
     async function checkLiveCollision() {
         const streamerId = streamerSelect.value;
         const startTime = startInput.value;
         const endTime = endInput.value;
 
-        if (!streamerId || !startTime || !endTime) {
+        if (!validateTimes() || !streamerId || !startTime || !endTime) {
             alertBox.classList.add('hidden');
+            formErrors.conflict = false;
+            refreshSubmit();
             return;
         }
 
@@ -175,6 +215,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (seq !== requestSeq) return;
 
         if (res.ok) {
+            formErrors.conflict = !!(data && data.has_conflict === true);
+            refreshSubmit();
+            if (typeof window.onCollisionData === 'function') window.onCollisionData(data);
             if (data && data.has_conflict === true) {
                 showAlert('conflict', 'Khung giờ này bị trùng với lịch của talent hoặc booking khác của bạn. Vui lòng chọn thời gian khác.');
             } else if (data && data.has_conflict === false) {
@@ -210,9 +253,10 @@ document.addEventListener('DOMContentLoaded', function () {
         collisionTimer = setTimeout(checkLiveCollision, 400);
     }
     [streamerSelect, startInput, endInput].forEach(function (el) {
-        el.addEventListener('input', scheduleCollisionCheck);
-        el.addEventListener('change', scheduleCollisionCheck);
+        el.addEventListener('input', function () { validateTimes(); scheduleCollisionCheck(); });
+        el.addEventListener('change', function () { validateTimes(); scheduleCollisionCheck(); });
     });
+    validateTimes();
     // Prefilled form (e.g. ?streamer_id=…, or old() input after a failed submit)
     if (streamerSelect.value && startInput.value && endInput.value) scheduleCollisionCheck();
 });
