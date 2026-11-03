@@ -100,11 +100,6 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @foreach($kpis as $kpi)
-                            @php
-                                // Real % (not capped) for the label; bar width capped at 100%.
-                                $__hPct = (float) $kpi->target_hours > 0 ? round((float) $kpi->achieved_hours / (float) $kpi->target_hours * 100) : 0;
-                                $__rPct = (float) $kpi->target_revenue > 0 ? round((float) $kpi->achieved_revenue / (float) $kpi->target_revenue * 100) : 0;
-                            @endphp
                             <tr class="hover:bg-slate-50">
                                 <td class="py-3 px-4 font-bold text-slate-900">
                                     {{ $kpi->streamer->stage_name }}
@@ -116,9 +111,9 @@
                                 <td class="py-3 px-4">
                                     <div class="flex items-center space-x-2">
                                         <div class="w-24 bg-slate-200 rounded-full h-2 overflow-hidden">
-                                            <div class="bg-primary-600 h-2 rounded-full" style="width: {{ min(100, max(0, $__hPct)) }}%"></div>
+                                            <div class="bg-primary-600 h-2 rounded-full" style="width: {{ $kpi->hours_progress_percentage }}%"></div>
                                         </div>
-                                        <span class="font-bold text-slate-700">{{ (int) $__hPct }}%</span>
+                                        <span class="font-bold text-slate-700">{{ $kpi->hours_progress_raw }}%</span>
                                     </div>
                                 </td>
                                 <td class="py-3 px-4">
@@ -128,9 +123,9 @@
                                 <td class="py-3 px-4">
                                     <div class="flex items-center space-x-2">
                                         <div class="w-24 bg-slate-200 rounded-full h-2 overflow-hidden">
-                                            <div class="bg-emerald-500 h-2 rounded-full" style="width: {{ min(100, max(0, $__rPct)) }}%"></div>
+                                            <div class="bg-emerald-500 h-2 rounded-full" style="width: {{ $kpi->revenue_progress_percentage }}%"></div>
                                         </div>
-                                        <span class="font-bold text-slate-700">{{ (int) $__rPct }}%</span>
+                                        <span class="font-bold text-slate-700">{{ $kpi->revenue_progress_raw }}%</span>
                                     </div>
                                 </td>
                                 <td class="py-3 px-4">
