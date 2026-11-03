@@ -31,9 +31,9 @@
             <div class="bg-white/10 backdrop-blur-md border border-white/20 p-5 rounded-2xl text-center sm:text-right w-full sm:w-auto">
                 <span class="text-xs text-slate-300 uppercase font-semibold block">Mức giá Booking chuẩn</span>
                 <span class="text-2xl sm:text-3xl font-black text-emerald-400 block my-1"><x-money :amount="$talent->rate_per_hour" suffix="/giờ" /></span>
-                <a href="{{ route('bookings.create', ['streamer_id' => $talent->id]) }}" class="mt-2 inline-block w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white font-bold text-sm shadow-lg shadow-primary-600/30 transition">
+                <x-booking-link :streamer="$talent->id" class="mt-2 inline-block w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white font-bold text-sm shadow-lg shadow-primary-600/30 transition">
                     <i class="fas fa-calendar-check mr-1.5"></i> Đặt Lịch Booking Ngay
-                </a>
+                </x-booking-link>
             </div>
         </div>
     </div>
@@ -204,9 +204,9 @@
                     </li>
                 </ul>
 
-                <a href="{{ route('bookings.create', ['streamer_id' => $talent->id]) }}" class="mt-5 block text-center w-full py-3 bg-white text-primary-900 font-black rounded-xl hover:bg-primary-50 transition shadow-sm text-sm">
+                <x-booking-link :streamer="$talent->id" class="mt-5 block text-center w-full py-3 bg-white text-primary-900 font-black rounded-xl hover:bg-primary-50 transition shadow-sm text-sm">
                     Gửi Yêu Cầu Booking
-                </a>
+                </x-booking-link>
             </div>
         </div>
     </div>

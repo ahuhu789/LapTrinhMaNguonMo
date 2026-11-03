@@ -10,7 +10,7 @@
             <h2 class="text-2xl font-black text-slate-900">Danh Sách Yêu Cầu Booking</h2>
             <p class="text-xs sm:text-sm text-slate-500">Phân quyền hiển thị theo vai trò (RBAC): {{ strtoupper(Auth::user()->role) }}</p>
         </div>
-        @if(Auth::user()->isClient() || Auth::user()->isAdmin())
+        @if(Auth::user()->isClient())
             <a href="{{ route('bookings.create') }}" class="px-5 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold text-sm shadow-sm transition flex items-center space-x-2">
                 <i class="fas fa-plus"></i>
                 <span>Tạo Booking Mới</span>

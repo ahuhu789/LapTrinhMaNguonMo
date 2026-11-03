@@ -23,10 +23,10 @@
                     <i class="fas fa-magnifying-glass"></i>
                     <span>Khám Phá Talent</span>
                 </a>
-                <a href="{{ route('bookings.create') }}" class="px-8 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold backdrop-blur-md border border-white/20 transition flex items-center space-x-2">
+                <x-booking-link class="px-8 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold backdrop-blur-md border border-white/20 transition flex items-center space-x-2">
                     <i class="fas fa-calendar-plus"></i>
                     <span>Đặt Lịch Booking Ngay</span>
-                </a>
+                </x-booking-link>
             </div>
         </div>
     </div>
@@ -112,9 +112,9 @@
                         <a href="{{ route('talents.show', $talent->id) }}" class="text-center py-2 px-3 rounded-xl border border-slate-300 hover:border-primary-500 hover:text-primary-600 font-semibold text-xs transition">
                             Xem Media Kit
                         </a>
-                        <a href="{{ route('bookings.create', ['streamer_id' => $talent->id]) }}" class="text-center py-2 px-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs transition shadow-sm">
+                        <x-booking-link :streamer="$talent->id" class="text-center py-2 px-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-xs transition shadow-sm">
                             Đặt Lịch
-                        </a>
+                        </x-booking-link>
                     </div>
                 </div>
             </div>

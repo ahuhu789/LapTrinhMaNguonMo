@@ -65,7 +65,7 @@
                     <nav class="hidden md:flex ml-8 space-x-6">
                         <a href="{{ route('home') }}" class="text-slate-600 hover:text-primary-600 font-medium text-sm transition">Trang Chủ</a>
                         <a href="{{ route('talents.index') }}" class="text-slate-600 hover:text-primary-600 font-medium text-sm transition">Danh Mục Talent</a>
-                        <a href="{{ route('bookings.create') }}" class="text-slate-600 hover:text-primary-600 font-medium text-sm transition">Đặt Lịch Booking</a>
+                        <x-booking-link class="text-slate-600 hover:text-primary-600 font-medium text-sm transition">Đặt Lịch Booking</x-booking-link>
                         @auth
                             <a href="{{ route('bookings.index') }}" class="text-slate-600 hover:text-primary-600 font-medium text-sm transition">Quản Lý Booking</a>
                         @endauth
