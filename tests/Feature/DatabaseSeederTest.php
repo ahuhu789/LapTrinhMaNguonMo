@@ -38,7 +38,7 @@ class DatabaseSeederTest extends TestCase
                 ->whereBetween('stream_date', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
                 ->sum('duration_hours');
             $revenue = Booking::where('streamer_id', $kpi->streamer_id)
-                ->whereIn('status', ['approved', 'completed'])
+                ->where('status', 'completed')
                 ->whereBetween('start_time', [now()->startOfMonth(), now()->endOfMonth()])
                 ->sum('budget');
 
