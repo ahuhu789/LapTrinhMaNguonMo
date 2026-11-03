@@ -25,7 +25,7 @@
 
             <div>
                 <label class="block font-semibold text-slate-600 mb-1">Thời Gian Bắt Đầu</label>
-                <input type="datetime-local" name="start_time" id="start_time" required value="{{ old('start_time') }}"
+                <input type="text" data-datepicker="datetime" autocomplete="off" name="start_time" id="start_time" required value="{{ old('start_time') }}"
                     @error('start_time') aria-invalid="true" aria-describedby="start_time_error" @enderror
                     class="w-full border {{ $errors->has('start_time') ? 'border-rose-400 bg-rose-50/40' : 'border-slate-300' }} rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500">
                 @error('start_time')
@@ -35,7 +35,7 @@
 
             <div>
                 <label class="block font-semibold text-slate-600 mb-1">Thời Gian Kết Thúc</label>
-                <input type="datetime-local" name="end_time" id="end_time" required value="{{ old('end_time') }}"
+                <input type="text" data-datepicker="datetime" autocomplete="off" name="end_time" id="end_time" required value="{{ old('end_time') }}"
                     @error('end_time') aria-invalid="true" aria-describedby="end_time_error" @enderror
                     class="w-full border {{ $errors->has('end_time') ? 'border-rose-400 bg-rose-50/40' : 'border-slate-300' }} rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500">
                 @error('end_time')

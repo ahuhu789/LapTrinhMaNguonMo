@@ -13,7 +13,7 @@
         </div>
 
         <form action="{{ route('manager.kpis') }}" method="GET" class="flex items-center space-x-2">
-            <input type="month" name="month" value="{{ $selectedMonth }}" 
+            <input type="text" data-datepicker="month" autocomplete="off" name="month" value="{{ $selectedMonth }}" 
                 class="text-xs border border-slate-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-primary-500 font-bold text-slate-700">
             <button type="submit" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold">
                 Xem Tháng
@@ -48,7 +48,7 @@
 
                 <div>
                     <label for="kpi_month_year" class="block text-xs font-semibold text-slate-600 mb-1">Tháng</label>
-                    <input type="month" name="month_year" id="kpi_month_year" value="{{ $selectedMonth }}" required
+                    <input type="text" data-datepicker="month" autocomplete="off" name="month_year" id="kpi_month_year" value="{{ $selectedMonth }}" required
                         class="w-full text-xs border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-primary-500">
                 </div>
 

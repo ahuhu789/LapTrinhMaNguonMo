@@ -40,14 +40,14 @@
                     <label for="start_time" class="block text-sm font-bold text-slate-700 mb-2">
                         2. Thời Gian Bắt Đầu <span class="text-rose-500">*</span>
                     </label>
-                    <input type="datetime-local" name="start_time" id="start_time" value="{{ old('start_time') }}" required
+                    <input type="text" data-datepicker="datetime" autocomplete="off" name="start_time" id="start_time" value="{{ old('start_time') }}" required
                         class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary-500 text-sm">
                 </div>
                 <div>
                     <label for="end_time" class="block text-sm font-bold text-slate-700 mb-2">
                         3. Thời Gian Kết Thúc <span class="text-rose-500">*</span>
                     </label>
-                    <input type="datetime-local" name="end_time" id="end_time" value="{{ old('end_time') }}" required
+                    <input type="text" data-datepicker="datetime" autocomplete="off" name="end_time" id="end_time" value="{{ old('end_time') }}" required
                         class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-primary-500 text-sm">
                 </div>
             </div>
