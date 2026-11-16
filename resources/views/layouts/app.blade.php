@@ -185,7 +185,7 @@
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 mt-16 py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
-            <p class="mb-2">© 2026 MCN Talent Management Platform. Đồ án môn Lập trình Web với PHP (Laravel Framework).</p>
+            <p class="mb-2">© 2026 MCN Talent Management Platform. Đồ án môn Lập trình mã nguồn mở (Laravel Framework).</p>
             <p class="text-xs text-slate-400">Kiến trúc MVC • Phân quyền RBAC • Kiểm tra Trùng Lịch Collision-Free • AI Context Injection Recommendation</p>
         </div>
     </footer>

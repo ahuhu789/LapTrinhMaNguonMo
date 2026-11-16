@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "laravel/mcn-platform",
     "type": "project",
-    "description": "Hệ thống Quản lý Talent Streamers (MCN Platform) - Lập trình Web với PHP",
+    "description": "Hệ thống Quản lý Talent Streamers (MCN Platform) - Lập trình mã nguồn mở",
     "keywords": ["laravel", "framework", "mcn", "talent-management", "streamer"],
     "license": "MIT",
     "require": {

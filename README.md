@@ -1,6 +1,6 @@
 # HỆ THỐNG QUẢN LÝ TALENT STREAMERS (MCN PLATFORM)
 
-> **Môn học:** Lập trình Web với PHP  
+> **Môn học:** Lập trình mã nguồn mở  
 > **Kiến trúc:** Laravel Framework (PHP 8.2+ MVC)  
 > **Cơ sở dữ liệu:** MySQL 8.0+  
 > **Giao diện:** Tailwind CSS, FontAwesome 6, Chart.js  
