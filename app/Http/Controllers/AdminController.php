@@ -56,16 +56,19 @@ class AdminController extends Controller
         $user = Auth::user();
         $currentMonth = Carbon::now()->format('Y-m');
 
-        // Danh sách Streamers thuộc quyền quản lý của Manager này
-        $managedStreamers = StreamerProfile::where('manager_id', $user->id)
-            ->with('currentKpi')
+        // Admin xem TOÀN BỘ streamer; Manager chỉ xem streamer mình phụ trách
+        $isAdminView = $user->isAdmin();
+        $managedStreamers = StreamerProfile::query()
+            ->unless($isAdminView, fn ($q) => $q->where('manager_id', $user->id))
+            ->with(['currentKpi', 'manager'])
+            ->orderBy('stage_name')
             ->get();
 
         $streamerIds = $managedStreamers->pluck('id');
 
-        // Booking chờ duyệt của nhóm
+        // Booking chờ xử lý của nhóm (chờ duyệt + đang xem xét)
         $pendingBookings = Booking::whereIn('streamer_id', $streamerIds)
-            ->where('status', 'pending')
+            ->whereIn('status', Booking::APPROVABLE_STATUSES)
             ->with(['client', 'streamer'])
             ->orderBy('created_at', 'desc')
             ->get();
@@ -83,7 +86,7 @@ class AdminController extends Controller
             ->with('streamer')
             ->get();
 
-        return view('manager.dashboard', compact('managedStreamers', 'pendingBookings', 'teamRevenue', 'teamProjectedRevenue', 'kpis'));
+        return view('manager.dashboard', compact('managedStreamers', 'pendingBookings', 'teamRevenue', 'teamProjectedRevenue', 'kpis', 'isAdminView'));
     }
 
     /**
