@@ -35,13 +35,19 @@
 </head>
 <body class="bg-slate-100 text-slate-800 flex h-screen overflow-hidden">
 
-    <!-- Sidebar -->
-    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0">
-        <div class="h-16 flex items-center px-6 bg-slate-950 border-b border-slate-800">
+    <!-- Off-canvas overlay (< 1024px) -->
+    <div id="sidebar-overlay" class="hidden lg:hidden fixed inset-0 bg-slate-900/50 z-30" aria-hidden="true"></div>
+
+    <!-- Sidebar: static on lg+, off-canvas drawer below 1024px -->
+    <aside id="app-sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 transform transition-transform duration-200 ease-out -translate-x-full lg:translate-x-0 lg:static">
+        <div class="h-16 flex items-center justify-between px-6 bg-slate-950 border-b border-slate-800">
             <a href="{{ route('home') }}" class="flex items-center space-x-2 text-white font-black text-lg">
                 <i class="fas fa-satellite-dish text-primary-500"></i>
                 <span>MCN CONTROL</span>
             </a>
+            <button type="button" data-sidebar-toggle class="lg:hidden w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800" aria-label="Đóng menu">
+                <i class="fas fa-xmark"></i>
+            </button>
         </div>
 
         <div class="px-4 py-3 border-b border-slate-800/80 bg-slate-900/50">
@@ -104,8 +110,13 @@
     <!-- Main Section -->
     <div class="flex-1 flex flex-col overflow-hidden">
         <!-- Top Navigation -->
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-10">
-            <h1 class="text-xl font-bold text-slate-800">@yield('page_title', 'Bảng Điều Khiển')</h1>
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-10">
+            <div class="flex items-center gap-3 min-w-0">
+                <button type="button" data-sidebar-toggle class="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 shrink-0" aria-controls="app-sidebar" aria-expanded="false" aria-label="Mở menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="text-xl font-bold text-slate-800">@yield('page_title', 'Bảng Điều Khiển')</h1>
+            </div>
             <div class="flex items-center space-x-4">
                 <span class="text-sm text-slate-500">MCN Agency Management v1.0</span>
             </div>
@@ -151,6 +162,9 @@
         </main>
     </div>
 
+    <x-confirm-modal />
+    <script src="{{ asset('js/ui.js') }}"></script>
+    <script src="{{ asset('js/confirm-modal.js') }}"></script>
     @stack('scripts')
 </body>
 </html>

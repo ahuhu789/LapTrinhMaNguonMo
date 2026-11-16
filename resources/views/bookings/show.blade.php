@@ -18,6 +18,7 @@
         @php
             $canManageBooking = Auth::user()->isAdmin()
                 || (Auth::user()->isManager() && ($booking->manager_id === Auth::id() || $booking->streamer->manager_id === Auth::id()));
+            $isClientOwner = Auth::user()->isClient() && $booking->client_id === Auth::id();
             // Booking::isRejectable() lives on the backend branch; fall back to the same rule (pending only).
             $isRejectable = method_exists($booking, 'isRejectable')
                 ? $booking->isRejectable()
@@ -29,11 +30,121 @@
             $canApproveBooking = $canManageBooking && $isApprovable;
             // $conflictInfo now only reports conflicts that block approval.
             $approvalBlocked = !empty($conflictInfo['has_conflict']);
+
+            $isReviewable = method_exists($booking, 'isReviewable')
+                ? $booking->isReviewable()
+                : $booking->status === 'pending';
+            $isCompletable = method_exists($booking, 'isCompletable')
+                ? $booking->isCompletable()
+                : $booking->status === 'approved';
+            // Role-specific cancel rules (backend: client may cancel pending/reviewing
+            // or approved-not-started; manager/admin only approved-not-started — pending uses Từ chối).
+            $isCancellableByClient = method_exists($booking, 'isCancellableByClient')
+                ? $booking->isCancellableByClient()
+                : in_array($booking->status, ['pending', 'reviewing'], true);
+            $isCancellableByManager = method_exists($booking, 'isCancellableByManager')
+                ? $booking->isCancellableByManager()
+                : false;
+            $isDeletable = method_exists($booking, 'isDeletable')
+                ? $booking->isDeletable()
+                : in_array($booking->status, ['rejected', 'cancelled'], true);
+
+            $policyAllows = function (string $ability) use ($booking) {
+                $policy = \Illuminate\Support\Facades\Gate::getPolicyFor($booking);
+                if (!$policy || !method_exists($policy, $ability)) {
+                    return true; // policy method not shipped yet — fall back to role/status checks
+                }
+                return \Illuminate\Support\Facades\Gate::allows($ability, $booking);
+            };
+
+            $canReviewBooking = $canManageBooking && $isReviewable && $policyAllows('review');
+            $canCompleteBooking = $canManageBooking && $isCompletable && $policyAllows('complete');
+            $canManagerCancel = $canManageBooking && $isCancellableByManager && $policyAllows('cancel');
+            $canClientCancel = $isClientOwner && $isCancellableByClient && $policyAllows('cancel');
+            $canClientDelete = $isClientOwner && $isDeletable && $policyAllows('delete');
+
+            $hasBookingActions = $canRejectBooking || $canApproveBooking || $canReviewBooking
+                || $canCompleteBooking || $canManagerCancel || $canClientCancel || $canClientDelete;
         @endphp
 
-        <!-- Approval / Rejection Actions for Manager / Admin -->
-        @if($canRejectBooking || $canApproveBooking)
-            <div class="flex items-center space-x-3">
+        @if($hasBookingActions)
+            <div class="flex flex-wrap items-center gap-2 justify-end">
+                @if($canReviewBooking)
+                <x-confirm-button
+                    :routes="['bookings.review', 'bookings.start-review', 'bookings.mark-reviewing', 'bookings.reviewing']"
+                    :params="$booking"
+                    method="POST"
+                    title="Chuyển sang xem xét"
+                    message="Chuyển booking này sang trạng thái đang xem xét?"
+                    confirm="Chuyển sang xem xét"
+                    variant="primary"
+                    class="px-4 py-2.5 rounded-xl border border-blue-300 text-blue-700 hover:bg-blue-50 font-bold text-xs transition"
+                >
+                    <i class="fas fa-magnifying-glass mr-1"></i> Chuyển sang xem xét
+                </x-confirm-button>
+                @endif
+
+                @if($canCompleteBooking)
+                <x-confirm-button
+                    :routes="['bookings.complete', 'bookings.mark-completed', 'bookings.finish']"
+                    :params="$booking"
+                    method="POST"
+                    title="Đánh dấu hoàn thành"
+                    message="Đánh dấu booking này đã hoàn thành? Doanh thu sẽ được tính vào KPI tháng."
+                    confirm="Đánh dấu hoàn thành"
+                    variant="primary"
+                    class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition"
+                >
+                    <i class="fas fa-flag-checkered mr-1"></i> Đánh dấu hoàn thành
+                </x-confirm-button>
+                @endif
+
+                @if($canClientCancel)
+                <x-confirm-button
+                    :routes="['bookings.cancel']"
+                    :params="$booking"
+                    method="POST"
+                    title="Hủy đơn booking"
+                    message="Bạn chắc chắn muốn hủy đơn booking này? Thao tác không thể hoàn tác."
+                    confirm="Hủy đơn"
+                    class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-xs transition"
+                >
+                    <i class="fas fa-ban mr-1"></i> Hủy đơn
+                </x-confirm-button>
+                @endif
+
+                @if($canManagerCancel)
+                <x-confirm-button
+                    :routes="['bookings.cancel']"
+                    :params="$booking"
+                    method="POST"
+                    title="Hủy booking"
+                    message="Hủy booking này? Vui lòng nhập lý do để phản hồi đến khách hàng."
+                    confirm="Hủy"
+                    :reason="true"
+                    reason-name="cancel_reason"
+                    reason-label="Lý do hủy"
+                    reason-placeholder="Nhập lý do hủy (tối thiểu 5 ký tự)..."
+                    class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-xs transition"
+                >
+                    <i class="fas fa-ban mr-1"></i> Hủy
+                </x-confirm-button>
+                @endif
+
+                @if($canClientDelete)
+                <x-confirm-button
+                    :routes="['bookings.destroy', 'bookings.delete']"
+                    :params="$booking"
+                    method="DELETE"
+                    title="Xóa đơn booking"
+                    message="Xóa vĩnh viễn đơn booking này? Thao tác không thể hoàn tác."
+                    confirm="Xóa"
+                    class="px-4 py-2.5 rounded-xl border border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs transition"
+                >
+                    <i class="fas fa-trash mr-1"></i> Xóa
+                </x-confirm-button>
+                @endif
+
                 @if($canRejectBooking)
                 <!-- Reject Button Trigger -->
                 <button type="button" onclick="openRejectModal()" class="px-4 py-2.5 rounded-xl border border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-xs transition">
@@ -47,15 +158,23 @@
                     <span>Không thể duyệt (trùng lịch)</span>
                 </button>
                 @elseif($canApproveBooking)
-                <!-- Approve Button (with Collision Lock) -->
-                <form action="{{ route('bookings.approve', $booking->id) }}" method="POST" onsubmit="return confirm({{ $approvalBlocked ? "'Khung giờ đang trùng lịch đã khóa: hệ thống sẽ tự động từ chối đơn này. Tiếp tục?'" : "'Duyệt và khóa lịch cho Talent này? Các booking chờ duyệt khác trùng khung giờ sẽ được tự động từ chối.'" }});">
-                    @csrf
-                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 transition flex items-center space-x-1.5">
-                        <i class="fas fa-check-double"></i>
-                        <span>Phê Duyệt & Khóa Lịch</span>
-                    </button>
-                </form>
+                <x-confirm-button
+                    :action="route('bookings.approve', $booking)"
+                    method="POST"
+                    title="Phê duyệt & khóa lịch"
+                    :message="$approvalBlocked
+                        ? 'Khung giờ đang trùng lịch đã khóa: hệ thống sẽ tự động từ chối đơn này. Tiếp tục?'
+                        : 'Duyệt và khóa lịch cho Talent này? Các booking chờ duyệt khác trùng khung giờ sẽ được tự động từ chối.'"
+                    confirm="Phê duyệt"
+                    variant="success"
+                    class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 transition"
+                >
+                    <i class="fas fa-check-double mr-1"></i> Phê Duyệt & Khóa Lịch
+                </x-confirm-button>
                 @endif
+                @error('cancel_reason')
+                    <p class="basis-full text-right text-[11px] font-semibold text-rose-600" role="alert">{{ $message }}</p>
+                @enderror
             </div>
         @endif
     </div>
@@ -112,6 +231,19 @@
         @endif
     @endif
 
+    @if($booking->status === 'cancelled')
+        <div class="bg-slate-50 border border-slate-300 rounded-2xl p-5 mb-6 text-slate-800" role="status">
+            <h4 class="font-bold text-sm text-slate-800 flex items-center mb-2">
+                <i class="fas fa-ban mr-2 text-slate-500"></i> Booking đã được hủy
+            </h4>
+            <div class="text-xs text-slate-700 pl-6 space-y-1">
+                <p><span class="font-semibold">Lý do hủy:</span> {{ $booking->cancel_reason ? $booking->cancel_reason : 'Không có lý do cụ thể được ghi nhận.' }}</p>
+                <p><span class="font-semibold">Người hủy:</span> {{ $booking->canceller?->name ?? '—' }}</p>
+                <p><span class="font-semibold">Thời điểm hủy:</span> <x-datetime :value="$booking->cancelled_at" /></p>
+            </div>
+        </div>
+    @endif
+
     <!-- 2 Column Details: Parties & Financials -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <!-- Client & Streamer Info -->
@@ -165,6 +297,18 @@
                     <span class="text-slate-500">Tổng thời lượng stream:</span>
                     <span class="font-bold text-indigo-600">{{ $booking->duration_hours }} giờ</span>
                 </div>
+                @if($booking->completed_at)
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-500">Hoàn thành lúc:</span>
+                    <span class="font-bold text-slate-800"><x-datetime :value="$booking->completed_at" /></span>
+                </div>
+                @endif
+                @if($booking->status === 'cancelled' && $booking->cancelled_at)
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-500">Đã hủy lúc:</span>
+                    <span class="font-bold text-slate-800"><x-datetime :value="$booking->cancelled_at" /></span>
+                </div>
+                @endif
             </div>
 
             <!-- Financial Breakdown -->

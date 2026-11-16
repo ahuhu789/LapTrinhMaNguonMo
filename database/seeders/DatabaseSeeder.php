@@ -175,6 +175,23 @@ class DatabaseSeeder extends Seeder
                 'budget' => 13500000.00, 'commission_rate' => 15.00, 'status' => 'completed', 'reject_reason' => null,
                 'created_at' => now(), 'updated_at' => now(),
             ],
+            // Booking ĐÃ DUYỆT nhưng buổi live ĐÃ KẾT THÚC -> demo nút "Xác nhận hoàn thành" (isCompletable()).
+            // Tính theo now() vì Render seed lại mỗi lần deploy. Khung tối (19h-22h) không trùng các booking
+            // completed 14h-17h bên dưới. 'approved' KHÔNG tính doanh thu/KPI (chỉ 'completed').
+            [
+                'id' => 6, 'client_id' => 15, 'streamer_id' => 1, 'manager_id' => 2,
+                'start_time' => Carbon::now()->subDays(2)->setTime(20, 0), 'end_time' => Carbon::now()->subDays(2)->setTime(22, 0),
+                'job_description' => 'Livestream mở hộp tai nghe Logitech G Pro X 2 cùng Bộ Tộc MixiGaming (chờ xác nhận hoàn thành).',
+                'budget' => 9000000.00, 'commission_rate' => 15.00, 'status' => 'approved', 'reject_reason' => null,
+                'created_at' => now()->subDays(6), 'updated_at' => now()->subDays(5),
+            ],
+            [
+                'id' => 7, 'client_id' => 16, 'streamer_id' => 3, 'manager_id' => 3,
+                'start_time' => Carbon::now()->subDays(3)->setTime(19, 0), 'end_time' => Carbon::now()->subDays(3)->setTime(21, 0),
+                'job_description' => 'Talkshow giới thiệu deal Shopee Live cuối tuần cùng KillerQueen (chờ xác nhận hoàn thành).',
+                'budget' => 5000000.00, 'commission_rate' => 15.00, 'status' => 'approved', 'reject_reason' => null,
+                'created_at' => now()->subDays(7), 'updated_at' => now()->subDays(6),
+            ],
         ]);
 
         // 4. Schedules
@@ -201,6 +218,19 @@ class DatabaseSeeder extends Seeder
                 'id' => 4, 'streamer_id' => 7, 'event_type' => 'stream', 'reference_id' => null,
                 'start_time' => Carbon::now()->addDays(2)->setTime(18, 0), 'end_time' => Carbon::now()->addDays(2)->setTime(22, 0),
                 'title' => 'Live Rank Thách Đấu & Giáo án Susan SBTC',
+                'created_at' => now(), 'updated_at' => now(),
+            ],
+            // Lịch khóa của 2 booking approved đã diễn ra (duyệt booking luôn tạo schedule 'booking')
+            [
+                'id' => 5, 'streamer_id' => 1, 'event_type' => 'booking', 'reference_id' => 6,
+                'start_time' => Carbon::now()->subDays(2)->setTime(20, 0), 'end_time' => Carbon::now()->subDays(2)->setTime(22, 0),
+                'title' => 'Booking: Mở hộp Logitech G Pro X 2 (Độ Mixi)',
+                'created_at' => now(), 'updated_at' => now(),
+            ],
+            [
+                'id' => 6, 'streamer_id' => 3, 'event_type' => 'booking', 'reference_id' => 7,
+                'start_time' => Carbon::now()->subDays(3)->setTime(19, 0), 'end_time' => Carbon::now()->subDays(3)->setTime(21, 0),
+                'title' => 'Booking: Shopee Live cuối tuần (KillerQueen)',
                 'created_at' => now(), 'updated_at' => now(),
             ],
         ]);

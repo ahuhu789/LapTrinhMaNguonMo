@@ -5,8 +5,15 @@
 
 @section('content')
 <div class="space-y-6">
+    @if($isAdminView ?? false)
+        <div class="rounded-2xl border border-indigo-200 bg-indigo-50 text-indigo-800 px-4 py-3 text-xs font-semibold flex items-start gap-2">
+            <i class="fas fa-shield-halved mt-0.5"></i>
+            <span>Bạn đang xem workspace Manager với quyền Admin. Số liệu gồm toàn bộ streamer trên sàn, không chỉ một nhóm phụ trách.</span>
+        </div>
+    @endif
+
     <!-- Stat Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex items-center space-x-4">
             <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
                 <i class="fas fa-users"></i>
@@ -22,7 +29,7 @@
                 <i class="fas fa-hourglass-half"></i>
             </div>
             <div>
-                <span class="text-xs font-semibold text-slate-400 uppercase">Booking Chờ Duyệt</span>
+                <span class="text-xs font-semibold text-slate-400 uppercase">Booking chờ duyệt/xem xét</span>
                 <div class="text-2xl font-black text-amber-600">{{ $pendingBookings->count() }} đơn</div>
             </div>
         </div>
@@ -32,8 +39,20 @@
                 <i class="fas fa-coins"></i>
             </div>
             <div>
-                <span class="text-xs font-semibold text-slate-400 uppercase">Doanh Số Tháng Này</span>
-                <div class="text-2xl font-black text-emerald-600"><x-money :amount="$teamRevenue" /></div>
+                <span class="text-xs font-semibold text-slate-400 uppercase">Doanh thu thực tế tháng này</span>
+                <div class="text-2xl font-black text-emerald-600"><x-money :amount="$teamRevenue ?? 0" /></div>
+                <span class="text-[11px] text-slate-500">Booking đã hoàn thành trong tháng</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex items-center space-x-4">
+            <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase">Doanh thu dự kiến (đã duyệt)</span>
+                <div class="text-2xl font-black text-teal-600"><x-money :amount="$teamProjectedRevenue ?? 0" /></div>
+                <span class="text-[11px] text-slate-500">Booking đã duyệt, chưa hoàn thành</span>
             </div>
         </div>
     </div>
@@ -43,7 +62,7 @@
         <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
             <h3 class="font-bold text-slate-900 text-sm flex items-center space-x-2">
                 <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
-                <span>Yêu Cầu Booking Đang Chờ Phê Duyệt</span>
+                <span>Yêu cầu booking chờ duyệt/xem xét</span>
             </h3>
             <span class="text-xs text-slate-400">Yêu cầu phản hồi trong 24h</span>
         </div>
@@ -51,7 +70,7 @@
         @if($pendingBookings->isEmpty())
             <div class="p-8 text-center text-slate-400 text-xs font-medium">
                 <i class="fas fa-check-circle text-2xl text-emerald-500 mb-2"></i>
-                <p>Hiện không có yêu cầu booking nào đang chờ duyệt.</p>
+                <p>Hiện không có yêu cầu booking nào đang chờ duyệt/xem xét.</p>
             </div>
         @else
             <div class="overflow-x-auto">
@@ -59,6 +78,7 @@
                     <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold">
                         <tr>
                             <th class="py-2.5 px-4">Mã #</th>
+                            <th class="py-2.5 px-4">Trạng thái</th>
                             <th class="py-2.5 px-4">Khách Hàng</th>
                             <th class="py-2.5 px-4">Talent Streamer</th>
                             <th class="py-2.5 px-4">Thời Gian</th>
@@ -70,8 +90,9 @@
                         @foreach($pendingBookings as $pb)
                             <tr class="hover:bg-slate-50">
                                 <td class="py-3 px-4 font-mono font-bold">#{{ $pb->id }}</td>
-                                <td class="py-3 px-4 font-semibold text-slate-800">{{ $pb->client->name }}</td>
-                                <td class="py-3 px-4 font-bold text-slate-900">{{ $pb->streamer->stage_name }}</td>
+                                <td class="py-3 px-4"><x-booking-status :status="$pb->status" size="sm" /></td>
+                                <td class="py-3 px-4 font-semibold text-slate-800">{{ $pb->client?->name ?? '—' }}</td>
+                                <td class="py-3 px-4 font-bold text-slate-900">{{ $pb->streamer?->stage_name ?? '—' }}</td>
                                 <td class="py-3 px-4"><x-datetime-range :start="$pb->start_time" :end="$pb->end_time" /></td>
                                 <td class="py-3 px-4 font-extrabold text-emerald-600"><x-money :amount="$pb->budget" /></td>
                                 <td class="py-3 px-4 text-right whitespace-nowrap w-px align-middle">

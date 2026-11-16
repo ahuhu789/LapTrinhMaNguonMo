@@ -41,9 +41,7 @@
                 <p class="text-xs text-slate-400 mt-0.5">Dữ liệu được cập nhật tự động qua các buổi stream và booking đã hoàn tất.</p>
             </div>
             @if($currentKpi)
-                <span class="px-3 py-1 rounded-full text-xs font-bold border {{ $currentKpi->status_badge_class }}">
-                    {{ $currentKpi->status_label }}
-                </span>
+                <x-kpi-status :kpi="$currentKpi" size="lg" />
             @endif
         </div>
 

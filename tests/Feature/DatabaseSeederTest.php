@@ -114,4 +114,74 @@ class DatabaseSeederTest extends TestCase
             $this->assertFalse($check['has_conflict'], "Booking #{$b->id}: {$check['message']}");
         });
     }
+
+    public function test_seeder_has_completable_approved_bookings_with_locked_schedules(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $completable = Booking::with('streamer')->get()->filter->isCompletable();
+        $this->assertGreaterThanOrEqual(1, $completable->count());
+
+        foreach ($completable as $b) {
+            $this->assertTrue(
+                Schedule::where('reference_id', $b->id)->where('event_type', 'booking')
+                    ->where('start_time', $b->start_time)->where('end_time', $b->end_time)->exists(),
+                "Booking #{$b->id} approved nhưng thiếu lịch khóa"
+            );
+            $this->assertNotNull($b->streamer->manager_id);
+
+            // Manager phụ trách và Admin thấy nút xác nhận hoàn thành
+            $manager = \App\Models\User::find($b->streamer->manager_id);
+            $admin = \App\Models\User::where('role', 'admin')->first();
+            foreach ([$manager, $admin] as $user) {
+                $this->actingAs($user)->get(route('bookings.show', $b))
+                    ->assertOk()->assertSee(route('bookings.complete', $b), false);
+            }
+        }
+    }
+
+    public function test_every_seeded_approved_booking_has_a_schedule(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        Booking::where('status', 'approved')->get()->each(fn (Booking $b) => $this->assertTrue(
+            Schedule::where('reference_id', $b->id)->exists(), "Booking approved #{$b->id} thiếu schedule"
+        ));
+    }
+
+    public function test_seeded_bookings_and_schedules_never_overlap_per_talent(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        // Khoảng bận của mỗi talent: booking chiếm lịch (approved/completed) + schedule không gắn với chính booking đó
+        $busy = collect();
+        Booking::whereIn('status', ['approved', 'completed', 'pending', 'reviewing'])->get()
+            ->each(fn ($b) => $busy->push(['streamer' => $b->streamer_id, 'start' => $b->start_time, 'end' => $b->end_time, 'key' => "booking#{$b->id}", 'ref' => $b->id]));
+        Schedule::all()->each(fn ($s) => $busy->push(['streamer' => $s->streamer_id, 'start' => $s->start_time, 'end' => $s->end_time, 'key' => "schedule#{$s->id}", 'ref' => $s->reference_id]));
+
+        foreach ($busy->groupBy('streamer') as $streamerId => $items) {
+            $items = $items->values();
+            for ($i = 0; $i < $items->count(); $i++) {
+                for ($j = $i + 1; $j < $items->count(); $j++) {
+                    [$a, $b] = [$items[$i], $items[$j]];
+                    if ($a['ref'] !== null && $a['ref'] === $b['ref']) {
+                        continue; // booking và lịch khóa của chính nó
+                    }
+                    $overlap = $a['start']->lt($b['end']) && $a['end']->gt($b['start']);
+                    $this->assertFalse($overlap, "Talent #{$streamerId}: {$a['key']} trùng {$b['key']}");
+                }
+            }
+        }
+    }
+
+    public function test_approved_bookings_are_not_counted_as_kpi_revenue(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $kpi = Kpi::where('streamer_id', 1)->where('month_year', now()->format('Y-m'))->first();
+        $completed = Booking::where('streamer_id', 1)->where('status', 'completed')
+            ->whereBetween('start_time', [now()->startOfMonth(), now()->endOfMonth()])->sum('budget');
+
+        $this->assertEquals((float) $completed, (float) $kpi->achieved_revenue);
+    }
 }

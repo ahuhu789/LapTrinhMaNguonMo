@@ -63,7 +63,7 @@
                             MCN TALENT
                         </span>
                     </a>
-                    <nav class="hidden md:flex ml-8 space-x-6">
+                    <nav class="hidden lg:flex ml-8 space-x-6">
                         <a href="{{ route('home') }}" class="text-slate-600 hover:text-primary-600 font-medium text-sm transition">Trang Chủ</a>
                         <a href="{{ route('talents.index') }}" class="text-slate-600 hover:text-primary-600 font-medium text-sm transition">Danh Mục Talent</a>
                         <x-booking-link class="text-slate-600 hover:text-primary-600 font-medium text-sm transition">Đặt Lịch Booking</x-booking-link>
@@ -74,6 +74,7 @@
                 </div>
 
                 <div class="flex items-center space-x-3">
+                    <div class="hidden lg:flex items-center space-x-3">
                     @guest
                         <a href="{{ route('login') }}" class="text-slate-700 hover:text-primary-600 text-sm font-semibold px-4 py-2">Đăng Nhập</a>
                         <a href="{{ route('register') }}" class="bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition">Đăng Ký Client</a>
@@ -103,8 +104,39 @@
                             </form>
                         </div>
                     @endguest
+                    </div>
+
+                    <button type="button" id="public-menu-toggle" class="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 transition" aria-controls="public-mobile-menu" aria-expanded="false" aria-label="Mở menu">
+                        <i class="fas fa-bars" data-icon-open></i>
+                        <i class="fas fa-xmark hidden" data-icon-close></i>
+                    </button>
                 </div>
             </div>
+
+            <!-- Mobile / tablet menu (< 1024px) -->
+            <nav id="public-mobile-menu" class="hidden lg:hidden pb-4 border-t border-slate-100 mt-0 pt-3 space-y-1" aria-label="Menu di động">
+                <a href="{{ route('home') }}" class="block px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-primary-50 hover:text-primary-700">Trang Chủ</a>
+                <a href="{{ route('talents.index') }}" class="block px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-primary-50 hover:text-primary-700">Danh Mục Talent</a>
+                <x-booking-link class="block px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-primary-50 hover:text-primary-700">Đặt Lịch Booking</x-booking-link>
+                @auth
+                    <a href="{{ route('bookings.index') }}" class="block px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-primary-50 hover:text-primary-700">Quản Lý Booking</a>
+                    @if(Auth::user()->isAdmin())
+                        <a href="{{ route('admin.dashboard') }}" class="block px-3 py-2.5 rounded-xl text-sm font-medium text-purple-700 hover:bg-purple-50">Admin Panel</a>
+                    @elseif(Auth::user()->isManager())
+                        <a href="{{ route('manager.dashboard') }}" class="block px-3 py-2.5 rounded-xl text-sm font-medium text-blue-700 hover:bg-blue-50">Manager Workspace</a>
+                    @elseif(Auth::user()->isStreamer())
+                        <a href="{{ route('streamer.dashboard') }}" class="block px-3 py-2.5 rounded-xl text-sm font-medium text-emerald-700 hover:bg-emerald-50">Streamer Workspace</a>
+                    @endif
+                    <div class="px-3 py-2 text-xs text-slate-500">{{ Auth::user()->name }}</div>
+                    <form action="{{ route('logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium text-rose-700 hover:bg-rose-50">Đăng xuất</button>
+                    </form>
+                @else
+                    <a href="{{ route('login') }}" class="block px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-primary-50 hover:text-primary-700">Đăng Nhập</a>
+                    <a href="{{ route('register') }}" class="block px-3 py-2.5 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 text-center">Đăng Ký Client</a>
+                @endauth
+            </nav>
         </div>
     </header>
 
@@ -153,7 +185,7 @@
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 mt-16 py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
-            <p class="mb-2">© 2026 MCN Talent Management Platform. Đồ án môn Lập trình Web với PHP (Laravel Framework).</p>
+            <p class="mb-2">© 2026 MCN Talent Management Platform. Đồ án môn Lập trình mã nguồn mở (Laravel Framework).</p>
             <p class="text-xs text-slate-400">Kiến trúc MVC • Phân quyền RBAC • Kiểm tra Trùng Lịch Collision-Free • AI Context Injection Recommendation</p>
         </div>
     </footer>
@@ -161,7 +193,10 @@
     <!-- AI Chatbot Floating Widget -->
     @include('layouts.ai_widget')
 
+    <x-confirm-modal />
     <script src="{{ asset('js/app.js') }}"></script>
+    <script src="{{ asset('js/ui.js') }}"></script>
+    <script src="{{ asset('js/confirm-modal.js') }}"></script>
     <script src="{{ asset('js/ai-chat.js') }}"></script>
     @stack('scripts')
 </body>

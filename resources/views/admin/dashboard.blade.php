@@ -36,7 +36,7 @@
             <div>
                 <span class="text-xs font-semibold text-slate-400 uppercase">Tổng Doanh Thu Sàn</span>
                 <div class="text-2xl font-black text-emerald-600"><x-money :amount="$stats['total_revenue']" /></div>
-                <span class="text-[11px] text-emerald-600 font-semibold">Tất cả chiến dịch</span>
+                <span class="text-[11px] text-emerald-600 font-semibold">Đã hoàn thành</span>
             </div>
         </div>
 
@@ -47,7 +47,31 @@
             <div>
                 <span class="text-xs font-semibold text-slate-400 uppercase">Hoa Hồng Agency ({{ rtrim(rtrim(number_format((float) config('mcn.commission_rate', 15), 2, ',', '.'), '0'), ',') }}%)</span>
                 <div class="text-2xl font-black text-indigo-600"><x-money :amount="$stats['total_commission']" /></div>
-                <span class="text-[11px] text-indigo-600 font-semibold">Lợi nhuận gộp MCN</span>
+                <span class="text-[11px] text-indigo-600 font-semibold">Đã hoàn thành</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projected revenue (approved, not yet completed) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex items-center space-x-4">
+            <div class="w-12 h-12 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase">Doanh thu dự kiến (đã duyệt)</span>
+                <div class="text-2xl font-black text-teal-600"><x-money :amount="$stats['projected_revenue'] ?? 0" /></div>
+                <span class="text-[11px] text-slate-500">Booking đã duyệt, chưa hoàn thành</span>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex items-center space-x-4">
+            <div class="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center text-xl">
+                <i class="fas fa-percent"></i>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase">Hoa hồng dự kiến (đã duyệt)</span>
+                <div class="text-2xl font-black text-cyan-700"><x-money :amount="$stats['projected_commission'] ?? 0" /></div>
+                <span class="text-[11px] text-slate-500">Doanh thu dự kiến (đã duyệt)</span>
             </div>
         </div>
     </div>

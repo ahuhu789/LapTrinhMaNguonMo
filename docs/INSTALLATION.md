@@ -2,6 +2,8 @@
 
 Hệ thống được phát triển trên nền tảng **Laravel Framework (PHP 8.2+)** kết hợp cơ sở dữ liệu **MySQL 8.0+**. Tài liệu này hướng dẫn chi tiết các bước thiết lập, cài đặt dependencies và kiểm thử toàn bộ các tính năng.
 
+> **Cập nhật:** cấu hình mặc định hiện là **SQLite** (`.env.example` có `DB_CONNECTION=sqlite`). Cách chạy nhanh với SQLite, Docker/Render và danh sách tài khoản demo xem tại [README.md](../README.md). Các bước MySQL bên dưới vẫn dùng được nếu bạn đổi `DB_CONNECTION=mysql`.
+
 ---
 
 ## 1. YÊU CẦU MÔI TRƯỜNG

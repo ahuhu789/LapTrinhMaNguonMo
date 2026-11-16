@@ -1,5 +1,17 @@
+{{--
+    AI mode flag (default = rule / "chế độ luật" when missing):
+      1. View vars $ai_mode / $aiMode (controller or view composer)
+      2. Config: services.ai.ai_mode, ai.ai_mode, ai.mode
+      3. JS updates the label from the /ai/recommend JSON field `ai_mode`
+    Do NOT fall back to services.ai.provider (that is the LLM vendor, not the UI flag).
+--}}
+@php
+    $__aiModeRaw = $ai_mode ?? $aiMode ?? config('services.ai.ai_mode') ?? config('ai.ai_mode') ?? config('ai.mode') ?? null;
+    $__aiMode = is_string($__aiModeRaw) ? strtolower(trim($__aiModeRaw)) : '';
+    $__isGemini = $__aiMode === 'gemini';
+@endphp
 <!-- AI Chatbot Floating Trigger Button -->
-<div id="ai-chat-widget" class="fixed bottom-6 right-6 z-50">
+<div id="ai-chat-widget" class="fixed bottom-6 right-6 z-50" data-ai-mode="{{ $__isGemini ? 'gemini' : 'rule' }}">
     <!-- Toggle Button -->
     <button id="ai-chat-toggle" class="bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white rounded-full px-4 py-3 shadow-xl flex items-center justify-center space-x-2 transition-all transform hover:scale-105 cursor-pointer border border-white/20">
         <span class="relative flex h-2.5 w-2.5">
@@ -21,7 +33,7 @@
                 <div>
                     <div class="flex items-center space-x-1.5">
                         <h4 class="font-bold text-xs">Trợ Lý AI Booking Talent</h4>
-                        <span class="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">Gemini 3.5</span>
+                        <span id="ai-mode-badge" class="{{ $__isGemini ? '' : 'hidden ' }}text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">Gemini</span>
                     </div>
                     <p class="text-[10px] text-primary-100 flex items-center mt-0.5">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span> Sẵn sàng hỗ trợ theo CSDL Talent MCN
@@ -87,7 +99,7 @@
                 </button>
             </div>
             <div class="flex justify-between items-center text-[10px] text-slate-400 px-1">
-                <span>⚡ Powered by Google Gemini AI</span>
+                <span id="ai-mode-powered">{{ $__isGemini ? '⚡ Powered by Google Gemini' : 'Trợ lý gợi ý MCN (chế độ luật)' }}</span>
                 <span>Dữ liệu CSDL MCN Real-time</span>
             </div>
         </form>

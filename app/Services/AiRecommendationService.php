@@ -8,6 +8,28 @@ use Exception;
 
 class AiRecommendationService
 {
+    /** ai_mode cho FE: chỉ 2 giá trị, để quyết định có hiển thị "Powered by Gemini" hay không */
+    public const MODE_GEMINI = 'gemini';
+    public const MODE_FALLBACK = 'fallback';
+
+    /**
+     * Chế độ dự kiến theo cấu hình (dùng cho view khi chưa có câu trả lời):
+     * 'gemini' khi có GEMINI_API_KEY, ngược lại 'fallback' (gợi ý theo luật trong hệ thống).
+     */
+    public static function configuredMode(): string
+    {
+        return filled(config('services.ai.gemini_key')) ? self::MODE_GEMINI : self::MODE_FALLBACK;
+    }
+
+    /**
+     * Chế độ THỰC của một câu trả lời: 'gemini' chỉ khi Gemini trả lời thành công;
+     * mọi trường hợp khác (OpenAI, rule-based, Gemini lỗi/hết quota) là 'fallback'.
+     */
+    public static function modeFor(array $result): string
+    {
+        return ($result['source'] ?? null) === 'gemini_ai' ? self::MODE_GEMINI : self::MODE_FALLBACK;
+    }
+
     /**
      * Gợi ý Talent Streamers dựa trên tiêu chí của khách hàng
      *
@@ -15,6 +37,13 @@ class AiRecommendationService
      * @return array Kết quả gợi ý dạng mảng (câu trả lời, danh sách talent phù hợp)
      */
     public function recommendTalents(string $userQuery): array
+    {
+        $result = $this->resolve($userQuery);
+
+        return $result + ['ai_mode' => self::modeFor($result)];
+    }
+
+    protected function resolve(string $userQuery): array
     {
         // 1. Data Context Injection: Truy vấn danh sách Streamer hoạt động trong CSDL
         $talents = StreamerProfile::where('status', 'active')

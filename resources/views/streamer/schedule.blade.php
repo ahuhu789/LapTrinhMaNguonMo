@@ -100,7 +100,17 @@
                                             Hợp đồng #{{ $s->reference_id }}
                                         </a>
                                     @else
-                                        <span class="text-slate-400">-</span>
+                                        <x-confirm-button
+                                            :routes="['streamer.schedule.destroy', 'streamer.schedule.delete', 'streamer.schedules.destroy']"
+                                            :params="$s"
+                                            method="DELETE"
+                                            title="Xóa lịch bận"
+                                            message="Xóa khung lịch này khỏi lịch trình cá nhân?"
+                                            confirm="Xóa"
+                                            class="inline-flex items-center justify-center gap-1.5 whitespace-nowrap leading-none text-rose-600 font-bold hover:underline"
+                                        >
+                                            <i class="fas fa-trash"></i> Xóa
+                                        </x-confirm-button>
                                     @endif
                                 </td>
                             </tr>

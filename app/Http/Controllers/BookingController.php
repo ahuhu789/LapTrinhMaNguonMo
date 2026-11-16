@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CancelBookingRequest;
 use App\Http\Requests\CheckCollisionRequest;
 use App\Http\Requests\RejectBookingRequest;
 use App\Http\Requests\StoreBookingRequest;
 use App\Models\Booking;
 use App\Models\StreamerProfile;
 use App\Services\BookingCollisionService;
+use App\Services\BookingLifecycleService;
 use App\Services\BookingPricing;
 use Illuminate\Support\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -165,5 +167,56 @@ class BookingController extends Controller
         $result = $collisionService->rejectBooking($booking, Auth::id(), $request->validated('reject_reason'));
 
         return back()->with($result['success'] ? 'success' : 'error', $result['message']);
+    }
+
+    /**
+     * Manager / Admin nhận xử lý: pending -> reviewing
+     */
+    public function review(Booking $booking, BookingLifecycleService $lifecycle)
+    {
+        $this->authorize('review', $booking);
+
+        return $this->flash($lifecycle->review($booking, Auth::user()));
+    }
+
+    /**
+     * Manager / Admin xác nhận hoàn thành: approved -> completed (chỉ sau end_time), tính lại KPI
+     */
+    public function complete(Booking $booking, BookingLifecycleService $lifecycle)
+    {
+        $this->authorize('complete', $booking);
+
+        return $this->flash($lifecycle->complete($booking, Auth::user()));
+    }
+
+    /**
+     * Hủy booking: Client chủ đơn (lý do tùy chọn) hoặc Manager/Admin (bắt buộc lý do).
+     * Quyền kiểm tra trong CancelBookingRequest (BookingPolicy@cancel).
+     */
+    public function cancel(CancelBookingRequest $request, Booking $booking, BookingLifecycleService $lifecycle)
+    {
+        return $this->flash($lifecycle->cancel($booking, $request->user(), $request->validated('cancel_reason')));
+    }
+
+    /** @param array{success: bool, message: string} $result */
+    private function flash(array $result)
+    {
+        return back()->with($result['success'] ? 'success' : 'error', $result['message']);
+    }
+
+    /**
+     * Client xóa đơn của mình khi đơn đã bị từ chối hoặc đã hủy (không ảnh hưởng doanh thu/KPI)
+     */
+    public function destroy(Booking $booking)
+    {
+        $this->authorize('delete', $booking);
+
+        if (!$booking->isDeletable()) {
+            return back()->with('error', 'Chỉ được xóa booking đã bị từ chối hoặc đã hủy (trạng thái hiện tại: ' . $booking->status_label . ').');
+        }
+
+        $booking->delete();
+
+        return redirect()->route('bookings.index')->with('success', 'Đã xóa booking #' . $booking->id . ' khỏi danh sách của bạn.');
     }
 }

@@ -48,11 +48,14 @@ class StreamerController extends Controller
             ->take(7)
             ->get();
 
-        // 4. Số liệu metrics 14 ngày gần nhất để vẽ biểu đồ
+        // 4. 14 buổi stream GẦN NHẤT cho biểu đồ, hiển thị theo thời gian tăng dần
         $chartMetrics = StreamMetric::where('streamer_id', $profile->id)
-            ->orderBy('stream_date', 'asc')
+            ->latest('stream_date')
+            ->latest('id')
             ->take(14)
-            ->get();
+            ->get()
+            ->reverse()
+            ->values();
 
         return view('streamer.dashboard', compact(
             'profile',
@@ -110,6 +113,22 @@ class StreamerController extends Controller
             ->paginate(20);
 
         return view('streamer.schedule', compact('profile', 'schedules'));
+    }
+
+    /**
+     * Streamer xóa lịch bận của mình. Lịch "booking" được khóa bởi booking đã duyệt -> phải hủy booking.
+     */
+    public function deleteEvent(Schedule $schedule)
+    {
+        $this->authorize('delete', $schedule);
+
+        if ($schedule->event_type === 'booking') {
+            return back()->with('error', 'Không thể xóa lịch được khóa bởi booking đã duyệt. Vui lòng liên hệ Manager để hủy booking.');
+        }
+
+        $schedule->delete();
+
+        return back()->with('success', 'Đã xóa lịch "' . $schedule->title . '" khỏi thời gian biểu.');
     }
 
     /**
