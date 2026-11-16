@@ -77,7 +77,7 @@ class Kpi extends Model
         return match ($this->status) {
             'in_progress' => 'Đang thực hiện',
             'achieved' => 'Hoàn thành',
-            'failed' => 'Chưa đạt',
+            'failed' => 'Không đạt',
             default => $this->status,
         };
     }

@@ -15,8 +15,11 @@ class KpiController extends Controller
     /**
      * Danh sách KPI theo vai trò
      */
-    public function index(Request $request)
+    public function index(Request $request, KpiService $kpiService)
     {
+        // Tháng đã qua mà chưa đạt -> 'failed' (Không đạt) trước khi hiển thị
+        $kpiService->closeEndedMonths();
+
         $user = Auth::user();
         $selectedMonth = $request->query('month', Carbon::now()->format('Y-m'));
 
