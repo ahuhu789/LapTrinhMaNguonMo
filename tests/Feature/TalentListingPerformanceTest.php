@@ -112,6 +112,7 @@ class TalentListingPerformanceTest extends TestCase
             ->assertOk()
             ->viewData('stats');
 
-        $this->assertEquals(350000, $stats['total_commission']); // 150k + 200k
+        $this->assertEquals(200000, $stats['total_commission']); // chỉ completed
+        $this->assertEquals(150000, $stats['projected_commission']); // approved
     }
 }

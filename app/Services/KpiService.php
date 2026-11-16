@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Booking;
 use App\Models\Kpi;
 use App\Models\StreamMetric;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
 /**
@@ -28,16 +29,15 @@ class KpiService
             return null;
         }
 
-        $month = Carbon::createFromFormat('!Y-m', $monthYear);
+        [$from, $to] = self::monthRange($monthYear);
 
         $hours = StreamMetric::where('streamer_id', $streamerId)
-            ->whereBetween('stream_date', [$month->copy()->startOfMonth()->toDateString(), $month->copy()->endOfMonth()->toDateString()])
+            ->where('stream_date', '>=', $from->toDateString())
+            ->where('stream_date', '<', $to->toDateString())
             ->sum('duration_hours');
 
-        $revenue = Booking::where('streamer_id', $streamerId)
-            ->where('status', 'completed')
-            ->where('start_time', '>=', $month->copy()->startOfMonth())
-            ->where('start_time', '<', $month->copy()->addMonthNoOverflow()->startOfMonth())
+        $revenue = self::revenueQuery('completed', $monthYear)
+            ->where('streamer_id', $streamerId)
             ->sum('budget');
 
         // Làm tròn 2 chữ số thập phân dạng chuỗi -> khớp cột decimal(…,2), tránh sai số float khi so sánh
@@ -62,6 +62,35 @@ class KpiService
                 ->where('month_year', '<', Carbon::now()->format('Y-m'))
                 ->get(['streamer_id', 'month_year'])
         );
+    }
+
+    /**
+     * [00:00 ngày 1, 00:00 ngày 1 tháng sau) của tháng Y-m theo giờ ứng dụng.
+     *
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    public static function monthRange(string $monthYear): array
+    {
+        $from = Carbon::createFromFormat('!Y-m', $monthYear);
+
+        return [$from, $from->copy()->addMonthNoOverflow()];
+    }
+
+    /**
+     * Truy vấn booking tính doanh thu (dùng chung cho KPI và dashboard để số liệu luôn khớp):
+     *  - 'completed' = doanh thu THỰC (KPI), 'approved' = doanh thu DỰ KIẾN (đã duyệt, chưa diễn ra/chưa xác nhận).
+     * Gắn theo tháng của start_time nếu truyền $monthYear.
+     */
+    public static function revenueQuery(string $status, ?string $monthYear = null): Builder
+    {
+        $query = Booking::query()->where('status', $status);
+
+        if ($monthYear) {
+            [$from, $to] = self::monthRange($monthYear);
+            $query->where('start_time', '>=', $from)->where('start_time', '<', $to);
+        }
+
+        return $query;
     }
 
     public static function statusFor(Kpi $kpi, string $monthYear): string

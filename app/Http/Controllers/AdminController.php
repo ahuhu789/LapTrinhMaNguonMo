@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\StreamerProfile;
 use App\Models\Booking;
 use App\Models\Kpi;
+use App\Services\KpiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -27,8 +28,13 @@ class AdminController extends Controller
             'total_clients' => User::where('role', 'client')->count(),
             'total_bookings' => Booking::count(),
             'pending_bookings' => Booking::where('status', 'pending')->count(),
-            'total_revenue' => Booking::whereIn('status', ['approved', 'completed'])->sum('budget'),
-            'total_commission' => round((float) Booking::whereIn('status', ['approved', 'completed'])
+            // Doanh thu THỰC = booking 'completed' (cùng định nghĩa với KPI)
+            'total_revenue' => (float) KpiService::revenueQuery('completed')->sum('budget'),
+            'total_commission' => round((float) KpiService::revenueQuery('completed')
+                ->sum(DB::raw('budget * commission_rate / 100')), 2),
+            // Doanh thu DỰ KIẾN = booking 'approved' (đã duyệt, chưa xác nhận hoàn thành)
+            'projected_revenue' => (float) KpiService::revenueQuery('approved')->sum('budget'),
+            'projected_commission' => round((float) KpiService::revenueQuery('approved')
                 ->sum(DB::raw('budget * commission_rate / 100')), 2),
         ];
 
@@ -64,13 +70,12 @@ class AdminController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $startOfMonth = Carbon::now()->startOfMonth()->toDateTimeString();
-        $endOfMonth = Carbon::now()->endOfMonth()->toDateTimeString();
-
-        // Thống kê doanh số tháng này của nhóm
-        $teamRevenue = Booking::whereIn('streamer_id', $streamerIds)
-            ->whereIn('status', ['approved', 'completed'])
-            ->whereBetween('start_time', [$startOfMonth, $endOfMonth])
+        // Doanh thu tháng này của nhóm: THỰC (completed, khớp KPI) và DỰ KIẾN (approved)
+        $teamRevenue = (float) KpiService::revenueQuery('completed', $currentMonth)
+            ->whereIn('streamer_id', $streamerIds)
+            ->sum('budget');
+        $teamProjectedRevenue = (float) KpiService::revenueQuery('approved', $currentMonth)
+            ->whereIn('streamer_id', $streamerIds)
             ->sum('budget');
 
         $kpis = Kpi::whereIn('streamer_id', $streamerIds)
@@ -78,7 +83,7 @@ class AdminController extends Controller
             ->with('streamer')
             ->get();
 
-        return view('manager.dashboard', compact('managedStreamers', 'pendingBookings', 'teamRevenue', 'kpis'));
+        return view('manager.dashboard', compact('managedStreamers', 'pendingBookings', 'teamRevenue', 'teamProjectedRevenue', 'kpis'));
     }
 
     /**
