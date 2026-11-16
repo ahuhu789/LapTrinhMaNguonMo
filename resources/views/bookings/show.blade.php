@@ -172,6 +172,9 @@
                     <i class="fas fa-check-double mr-1"></i> Phê Duyệt & Khóa Lịch
                 </x-confirm-button>
                 @endif
+                @error('cancel_reason')
+                    <p class="basis-full text-right text-[11px] font-semibold text-rose-600" role="alert">{{ $message }}</p>
+                @enderror
             </div>
         @endif
     </div>
@@ -228,6 +231,19 @@
         @endif
     @endif
 
+    @if($booking->status === 'cancelled')
+        <div class="bg-slate-50 border border-slate-300 rounded-2xl p-5 mb-6 text-slate-800" role="status">
+            <h4 class="font-bold text-sm text-slate-800 flex items-center mb-2">
+                <i class="fas fa-ban mr-2 text-slate-500"></i> Booking đã được hủy
+            </h4>
+            <div class="text-xs text-slate-700 pl-6 space-y-1">
+                <p><span class="font-semibold">Lý do hủy:</span> {{ $booking->cancel_reason ? $booking->cancel_reason : 'Không có lý do cụ thể được ghi nhận.' }}</p>
+                <p><span class="font-semibold">Người hủy:</span> {{ $booking->canceller?->name ?? '—' }}</p>
+                <p><span class="font-semibold">Thời điểm hủy:</span> <x-datetime :value="$booking->cancelled_at" /></p>
+            </div>
+        </div>
+    @endif
+
     <!-- 2 Column Details: Parties & Financials -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <!-- Client & Streamer Info -->
@@ -281,6 +297,18 @@
                     <span class="text-slate-500">Tổng thời lượng stream:</span>
                     <span class="font-bold text-indigo-600">{{ $booking->duration_hours }} giờ</span>
                 </div>
+                @if($booking->completed_at)
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-500">Hoàn thành lúc:</span>
+                    <span class="font-bold text-slate-800"><x-datetime :value="$booking->completed_at" /></span>
+                </div>
+                @endif
+                @if($booking->status === 'cancelled' && $booking->cancelled_at)
+                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                    <span class="text-slate-500">Đã hủy lúc:</span>
+                    <span class="font-bold text-slate-800"><x-datetime :value="$booking->cancelled_at" /></span>
+                </div>
+                @endif
             </div>
 
             <!-- Financial Breakdown -->

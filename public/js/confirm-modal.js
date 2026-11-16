@@ -49,9 +49,16 @@
             reasonWrap.classList.toggle('hidden', !needsReason);
             reasonInput.required = needsReason;
             reasonInput.name = trigger.getAttribute('data-confirm-reason-name') || 'cancel_reason';
-            reasonInput.value = '';
-            reasonInput.classList.remove('border-rose-400');
-            reasonError.classList.add('hidden');
+            reasonInput.value = trigger.getAttribute('data-confirm-old-reason') || '';
+            const serverErr = (trigger.getAttribute('data-confirm-error') || '').trim();
+            if (serverErr) {
+                reasonInput.classList.add('border-rose-400');
+                reasonError.textContent = serverErr;
+                reasonError.classList.remove('hidden');
+            } else {
+                reasonInput.classList.remove('border-rose-400');
+                reasonError.classList.add('hidden');
+            }
             const labelText = trigger.getAttribute('data-confirm-reason-label') || 'Lý do';
             reasonLabel.innerHTML = labelText + ' <span class="text-rose-500">*</span>';
             const ph = trigger.getAttribute('data-confirm-reason-placeholder');
@@ -85,10 +92,14 @@
             if (val.length < 5) {
                 e.preventDefault();
                 reasonInput.classList.add('border-rose-400');
+                if (!reasonError.textContent) reasonError.textContent = 'Vui lòng nhập lý do (tối thiểu 5 ký tự).';
                 reasonError.classList.remove('hidden');
                 reasonInput.focus();
             }
         });
+
+        const auto = document.querySelector('[data-confirm][data-confirm-open="1"]');
+        if (auto) openFrom(auto);
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

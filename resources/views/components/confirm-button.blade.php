@@ -47,6 +47,11 @@
         data-confirm-reason-name="{{ $reasonName }}"
         data-confirm-reason-label="{{ $reasonLabel }}"
         data-confirm-reason-placeholder="{{ $reasonPlaceholder }}"
+        @if($errors->has($reasonName))
+            data-confirm-open="1"
+            data-confirm-old-reason="{{ old($reasonName) }}"
+            data-confirm-error="{{ $errors->first($reasonName) }}"
+        @endif
     @endif
     {{ $attributes }}>{{ $slot }}</button>
 @endif
