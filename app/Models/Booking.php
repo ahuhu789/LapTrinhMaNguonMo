@@ -23,6 +23,9 @@ class Booking extends Model
     /** Trạng thái cho phép Manager từ chối thủ công */
     public const REJECTABLE_STATUSES = ['pending', 'reviewing'];
 
+    /** Trạng thái Client được xóa khỏi danh sách của mình (đơn đã kết thúc, không ảnh hưởng doanh thu/KPI) */
+    public const DELETABLE_STATUSES = ['rejected', 'cancelled'];
+
     protected $fillable = [
         'client_id',
         'streamer_id',
@@ -34,6 +37,10 @@ class Booking extends Model
         'commission_rate',
         'status',
         'reject_reason',
+        'cancel_reason',
+        'cancelled_by',
+        'cancelled_at',
+        'completed_at',
     ];
 
     protected $casts = [
@@ -41,6 +48,8 @@ class Booking extends Model
         'end_time' => 'datetime',
         'budget' => 'decimal:2',
         'commission_rate' => 'decimal:2',
+        'cancelled_at' => 'datetime',
+        'completed_at' => 'datetime',
     ];
 
     public function client()
@@ -56,6 +65,11 @@ class Booking extends Model
     public function manager()
     {
         return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    public function canceller()
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
     }
 
     public function schedule()
@@ -79,6 +93,51 @@ class Booking extends Model
     public function isRejectable(): bool
     {
         return in_array($this->status, self::REJECTABLE_STATUSES, true);
+    }
+
+    // ---- Vòng đời (dùng cho service khi đã khóa hàng, và cho view để ẩn/hiện nút) ----
+
+    /** pending -> reviewing (Manager/Admin) */
+    public function isReviewable(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    /** Đã tới giờ bắt đầu chưa */
+    public function hasStarted(): bool
+    {
+        return $this->start_time !== null && !now()->lt($this->start_time);
+    }
+
+    /** Đã kết thúc chưa (end_time đã qua) */
+    public function hasEnded(): bool
+    {
+        return $this->end_time !== null && !now()->lt($this->end_time);
+    }
+
+    /** approved -> completed: chỉ khi buổi live đã kết thúc */
+    public function isCompletable(): bool
+    {
+        return $this->status === 'approved' && $this->hasEnded();
+    }
+
+    /** Client hủy: pending/reviewing, hoặc approved nhưng chưa tới giờ bắt đầu */
+    public function isCancellableByClient(): bool
+    {
+        return in_array($this->status, self::APPROVABLE_STATUSES, true)
+            || ($this->status === 'approved' && !$this->hasStarted());
+    }
+
+    /** Manager/Admin hủy: chỉ booking approved chưa diễn ra (pending/reviewing thì dùng "Từ chối") */
+    public function isCancellableByManager(): bool
+    {
+        return $this->status === 'approved' && !$this->hasStarted();
+    }
+
+    /** Client xóa đơn của mình: chỉ đơn đã bị từ chối hoặc đã hủy */
+    public function isDeletable(): bool
+    {
+        return in_array($this->status, self::DELETABLE_STATUSES, true);
     }
 
     public function getDurationHoursAttribute(): float

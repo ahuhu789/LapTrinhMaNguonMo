@@ -15,8 +15,11 @@ class KpiController extends Controller
     /**
      * Danh sách KPI theo vai trò
      */
-    public function index(Request $request)
+    public function index(Request $request, KpiService $kpiService)
     {
+        // Tháng đã qua mà chưa đạt -> 'failed' (Không đạt) trước khi hiển thị
+        $kpiService->closeEndedMonths();
+
         $user = Auth::user();
         $selectedMonth = $request->query('month', Carbon::now()->format('Y-m'));
 
@@ -32,6 +35,19 @@ class KpiController extends Controller
         }
 
         return view('manager.kpis', compact('kpis', 'streamers', 'selectedMonth'));
+    }
+
+    /**
+     * Xóa mục tiêu KPI (Manager phụ trách / Admin)
+     */
+    public function destroy(Kpi $kpi)
+    {
+        $kpi->load('streamer');
+        $this->authorize('delete', $kpi);
+
+        $kpi->delete();
+
+        return back()->with('success', 'Đã xóa mục tiêu KPI tháng ' . $kpi->month_year . ' của streamer ' . $kpi->streamer?->stage_name . '.');
     }
 
     /**

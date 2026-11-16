@@ -58,6 +58,51 @@ class BookingPolicy
             : Response::deny('Bạn không có quyền từ chối booking này.');
     }
 
+    /**
+     * Chuyển pending -> reviewing: Admin hoặc Manager phụ trách Talent.
+     */
+    public function review(User $user, Booking $booking): Response
+    {
+        return $this->canManage($user, $booking)
+            ? Response::allow()
+            : Response::deny('Bạn không có quyền xử lý booking này.');
+    }
+
+    /**
+     * Đánh dấu hoàn thành (approved -> completed): Admin hoặc Manager phụ trách Talent.
+     * Điều kiện trạng thái/thời gian kiểm tra trong BookingLifecycleService (dưới khóa hàng).
+     */
+    public function complete(User $user, Booking $booking): Response
+    {
+        return $this->canManage($user, $booking)
+            ? Response::allow()
+            : Response::deny('Bạn không có quyền xác nhận hoàn thành booking này.');
+    }
+
+    /**
+     * Hủy booking: Client chủ đơn, hoặc Admin / Manager phụ trách Talent.
+     */
+    public function cancel(User $user, Booking $booking): Response
+    {
+        $allowed = $user->isClient()
+            ? $booking->client_id === $user->id
+            : $this->canManage($user, $booking);
+
+        return $allowed
+            ? Response::allow()
+            : Response::deny('Bạn không có quyền hủy booking này.');
+    }
+
+    /**
+     * Xóa booking: chỉ Client chủ đơn (trạng thái rejected/cancelled kiểm tra ở controller).
+     */
+    public function delete(User $user, Booking $booking): Response
+    {
+        return $user->isClient() && $booking->client_id === $user->id
+            ? Response::allow()
+            : Response::deny('Chỉ khách hàng tạo đơn mới được xóa booking này.');
+    }
+
     private function canManage(User $user, Booking $booking): bool
     {
         return $user->isAdmin()

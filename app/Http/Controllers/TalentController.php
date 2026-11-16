@@ -81,11 +81,14 @@ class TalentController extends Controller
             ->orderBy('start_time')
             ->get();
 
-        // 3. Các số liệu lịch sử 10 buổi gần nhất cho biểu đồ
+        // 3. 10 buổi stream GẦN NHẤT (lấy mới -> cũ), rồi đảo lại để biểu đồ chạy theo thời gian tăng dần
         $recentMetrics = StreamMetric::where('streamer_id', $talent->id)
-            ->orderBy('stream_date', 'asc')
+            ->latest('stream_date')
+            ->latest('id')
             ->take(10)
-            ->get();
+            ->get()
+            ->reverse()
+            ->values();
 
         return view('talents.show', compact('talent', 'platformBreakdown', 'upcomingSchedules', 'recentMetrics'));
     }
