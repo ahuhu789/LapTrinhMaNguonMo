@@ -96,6 +96,9 @@
                             <th class="py-3 px-4">Doanh Thu Đạt Được</th>
                             <th class="py-3 px-4">Tiến Độ Doanh Thu</th>
                             <th class="py-3 px-4">Trạng Thái</th>
+                            @if(collect(['manager.kpis.destroy', 'manager.kpis.delete', 'kpis.destroy'])->contains(fn ($n) => Route::has($n)))
+                            <th class="py-3 px-4 text-right">Thao tác</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -129,10 +132,23 @@
                                     </div>
                                 </td>
                                 <td class="py-3 px-4">
-                                    <span class="px-2.5 py-1 rounded-full font-bold border text-[10px] {{ $kpi->status_badge_class }}">
-                                        {{ $kpi->status_label }}
-                                    </span>
+                                    <x-kpi-status :kpi="$kpi" size="sm" />
                                 </td>
+                                @if(collect(['manager.kpis.destroy', 'manager.kpis.delete', 'kpis.destroy'])->contains(fn ($n) => Route::has($n)))
+                                <td class="py-3 px-4 text-right">
+                                    <x-confirm-button
+                                        :routes="['manager.kpis.destroy', 'manager.kpis.delete', 'kpis.destroy']"
+                                        :params="$kpi"
+                                        method="DELETE"
+                                        title="Xóa chỉ tiêu KPI"
+                                        :message="'Xóa mục tiêu KPI của ' . ($kpi->streamer->stage_name ?? 'streamer') . ' tháng ' . $kpi->month_year . '?'"
+                                        confirm="Xóa"
+                                        class="px-2.5 py-1 rounded-lg border border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-[10px] transition"
+                                    >
+                                        <i class="fas fa-trash mr-1"></i> Xóa
+                                    </x-confirm-button>
+                                </td>
+                                @endif
                             </tr>
                         @endforeach
                     </tbody>

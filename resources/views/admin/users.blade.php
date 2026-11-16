@@ -89,6 +89,19 @@
                                 @if($roleErrorHere)
                                     <p class="mt-1 text-[11px] font-semibold text-rose-600" role="alert">{{ $errors->first('role') }}</p>
                                 @endif
+                                @if($u->id !== Auth::id())
+                                    <x-confirm-button
+                                        :routes="['admin.users.destroy', 'admin.users.delete']"
+                                        :params="$u"
+                                        method="DELETE"
+                                        title="Xóa tài khoản"
+                                        :message="'Xóa tài khoản ' . $u->name . ' (' . $u->email . ')? Thao tác không thể hoàn tác.'"
+                                        confirm="Xóa"
+                                        class="ml-1 px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold transition"
+                                    >
+                                        <i class="fas fa-trash"></i> Xóa
+                                    </x-confirm-button>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

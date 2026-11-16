@@ -142,7 +142,9 @@
         </main>
     </div>
 
+    <x-confirm-modal />
     <script src="{{ asset('js/ui.js') }}"></script>
+    <script src="{{ asset('js/confirm-modal.js') }}"></script>
     @stack('scripts')
 </body>
 </html>

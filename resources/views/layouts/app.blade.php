@@ -193,8 +193,10 @@
     <!-- AI Chatbot Floating Widget -->
     @include('layouts.ai_widget')
 
+    <x-confirm-modal />
     <script src="{{ asset('js/app.js') }}"></script>
     <script src="{{ asset('js/ui.js') }}"></script>
+    <script src="{{ asset('js/confirm-modal.js') }}"></script>
     <script src="{{ asset('js/ai-chat.js') }}"></script>
     @stack('scripts')
 </body>
