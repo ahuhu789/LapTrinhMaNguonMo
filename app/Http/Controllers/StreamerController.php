@@ -48,11 +48,14 @@ class StreamerController extends Controller
             ->take(7)
             ->get();
 
-        // 4. Số liệu metrics 14 ngày gần nhất để vẽ biểu đồ
+        // 4. 14 buổi stream GẦN NHẤT cho biểu đồ, hiển thị theo thời gian tăng dần
         $chartMetrics = StreamMetric::where('streamer_id', $profile->id)
-            ->orderBy('stream_date', 'asc')
+            ->latest('stream_date')
+            ->latest('id')
             ->take(14)
-            ->get();
+            ->get()
+            ->reverse()
+            ->values();
 
         return view('streamer.dashboard', compact(
             'profile',
