@@ -45,6 +45,8 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:30,1')
         ->name('bookings.check-collision');
     Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
+    // Hủy booking: Client chủ đơn hoặc Manager/Admin phụ trách (BookingPolicy@cancel)
+    Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
 });
 
 // --- 4. Manager & Admin Routes (Quản lý vận hành) ---
@@ -54,6 +56,9 @@ Route::middleware(['auth', 'role:manager,admin'])->group(function () {
     // Duyệt và Từ chối booking kèm kiểm tra xung đột thời gian
     Route::post('/bookings/{booking}/approve', [BookingController::class, 'approve'])->name('bookings.approve');
     Route::post('/bookings/{booking}/reject', [BookingController::class, 'reject'])->name('bookings.reject');
+    // Vòng đời: pending -> reviewing, approved -> completed (sau end_time)
+    Route::post('/bookings/{booking}/review', [BookingController::class, 'review'])->name('bookings.review');
+    Route::post('/bookings/{booking}/complete', [BookingController::class, 'complete'])->name('bookings.complete');
 
     // Quản lý KPI
     Route::get('/manager/kpis', [KpiController::class, 'index'])->name('manager.kpis');
