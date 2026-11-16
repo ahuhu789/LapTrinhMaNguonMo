@@ -11,6 +11,27 @@ document.addEventListener('DOMContentLoaded', function () {
     const quickPrompts = document.querySelectorAll('.quick-prompt');
 
     if (!toggleBtn || !chatWindow) return;
+    if (!toggleBtn || !chatWindow) return;
+
+    const widgetRoot = document.getElementById('ai-chat-widget');
+    const GEMINI_POWERED = '⚡ Powered by Google Gemini';
+    const RULE_POWERED = 'Trợ lý gợi ý MCN (chế độ luật)';
+
+    function isGeminiMode() {
+        return (widgetRoot?.dataset.aiMode || 'rule').toLowerCase() === 'gemini';
+    }
+
+    function applyAiMode(mode) {
+        if (mode == null || mode === '') return; // missing → keep current (already defaulted to rule)
+        const normalized = String(mode).trim().toLowerCase();
+        const gemini = normalized === 'gemini';
+        if (widgetRoot) widgetRoot.dataset.aiMode = gemini ? 'gemini' : 'rule';
+        const badge = document.getElementById('ai-mode-badge');
+        if (badge) badge.classList.toggle('hidden', !gemini);
+        const powered = document.getElementById('ai-mode-powered');
+        if (powered) powered.textContent = gemini ? GEMINI_POWERED : RULE_POWERED;
+    }
+
 
     const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=200';
 
@@ -86,6 +107,7 @@ document.addEventListener('DOMContentLoaded', function () {
             let data = null;
             try { data = await response.json(); } catch (e) { data = null; }
             removeLoading(loadingId);
+            if (data && data.ai_mode) applyAiMode(data.ai_mode);
 
             if (!response.ok) {
                 appendMessage('bot', errorMessageForResponse(response, data));
@@ -336,7 +358,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <span class="w-2 h-2 rounded-full bg-primary-500 animate-bounce [animation-delay:0.15s]"></span>
                     <span class="w-2 h-2 rounded-full bg-primary-500 animate-bounce [animation-delay:0.3s]"></span>
                 </div>
-                <span class="text-[11px] text-slate-400">Gemini đang tra cứu CSDL Talent...</span>
+                <span class="text-[11px] text-slate-400">${isGeminiMode() ? 'Gemini đang tra cứu CSDL Talent...' : 'Trợ lý gợi ý MCN đang tìm kiếm...'}</span>
             </div>
         `;
         messagesContainer.appendChild(loadingDiv);
