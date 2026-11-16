@@ -227,4 +227,29 @@ class BookingLifecycleTest extends TestCase
         $this->post(route('bookings.cancel', $b))->assertRedirect(route('login'));
         $this->post(route('bookings.review', $b))->assertRedirect(route('login'));
     }
+
+    public function test_is_cancellable_depends_on_actor_role(): void
+    {
+        $pending = $this->booking('pending');
+        $approved = $this->booking('approved');
+
+        $this->assertTrue($pending->isCancellable($this->client));
+        $this->assertFalse($pending->isCancellable($this->manager));
+        $this->assertTrue($approved->isCancellable($this->manager));
+
+        $this->actingAs($this->manager);
+        $this->assertFalse($pending->isCancellable());
+    }
+
+    public function test_show_page_offers_cancel_only_when_allowed(): void
+    {
+        $pending = $this->booking('pending');
+
+        $this->actingAs($this->client)->get(route('bookings.show', $pending))
+            ->assertOk()->assertSee(route('bookings.cancel', $pending), false);
+
+        $started = $this->booking('approved', '2026-11-10 11:00:00');
+        $this->actingAs($this->client)->get(route('bookings.show', $started))
+            ->assertOk()->assertDontSee(route('bookings.cancel', $started), false);
+    }
 }

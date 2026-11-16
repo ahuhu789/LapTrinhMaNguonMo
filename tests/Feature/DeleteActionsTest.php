@@ -183,4 +183,23 @@ class DeleteActionsTest extends TestCase
         $this->actingAs($this->makeUser('admin'))->delete(route('bookings.destroy', $booking))->assertForbidden();
         $this->assertModelExists($booking);
     }
+
+    public function test_delete_actions_are_rendered_for_allowed_users(): void
+    {
+        $admin = $this->makeUser('admin');
+        $other = $this->makeUser('client');
+        $this->actingAs($admin)->get(route('admin.users'))->assertOk()
+            ->assertSee('data-confirm-action="' . route('admin.users.destroy', $other) . '"', false)
+            ->assertDontSee('data-confirm-action="' . route('admin.users.destroy', $admin) . '"', false);
+
+        $manager = $this->makeUser('manager');
+        $talent = $this->makeStreamer($manager);
+        $kpi = Kpi::create(['streamer_id' => $talent->id, 'month_year' => now()->format('Y-m'), 'target_hours' => 10, 'target_revenue' => 1000, 'target_avg_viewers' => 0]);
+        $this->actingAs($manager)->get(route('manager.kpis'))->assertOk()
+            ->assertSee(route('manager.kpis.destroy', $kpi), false);
+
+        $schedule = $this->schedule($talent);
+        $this->actingAs($talent->user)->get(route('streamer.schedule'))->assertOk()
+            ->assertSee(route('streamer.schedule.destroy', $schedule), false);
+    }
 }

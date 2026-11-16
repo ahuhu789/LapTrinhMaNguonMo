@@ -134,6 +134,21 @@ class Booking extends Model
         return $this->status === 'approved' && !$this->hasStarted();
     }
 
+    /**
+     * Hủy được theo vai trò của người đang thao tác (mặc định: người đăng nhập):
+     * Client -> isCancellableByClient(), Manager/Admin -> isCancellableByManager().
+     */
+    public function isCancellable(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+
+        if (!$user) {
+            return false;
+        }
+
+        return $user->isClient() ? $this->isCancellableByClient() : $this->isCancellableByManager();
+    }
+
     /** Client xóa đơn của mình: chỉ đơn đã bị từ chối hoặc đã hủy */
     public function isDeletable(): bool
     {
