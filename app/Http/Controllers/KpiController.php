@@ -35,6 +35,19 @@ class KpiController extends Controller
     }
 
     /**
+     * Xóa mục tiêu KPI (Manager phụ trách / Admin)
+     */
+    public function destroy(Kpi $kpi)
+    {
+        $kpi->load('streamer');
+        $this->authorize('delete', $kpi);
+
+        $kpi->delete();
+
+        return back()->with('success', 'Đã xóa mục tiêu KPI tháng ' . $kpi->month_year . ' của streamer ' . $kpi->streamer?->stage_name . '.');
+    }
+
+    /**
      * Thiết lập chỉ tiêu KPI cho Streamer (Dành cho Manager & Admin)
      */
     public function store(StoreKpiRequest $request, KpiService $kpiService)

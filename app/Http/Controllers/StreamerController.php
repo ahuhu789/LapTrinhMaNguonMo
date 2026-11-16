@@ -113,6 +113,22 @@ class StreamerController extends Controller
     }
 
     /**
+     * Streamer xóa lịch bận của mình. Lịch "booking" được khóa bởi booking đã duyệt -> phải hủy booking.
+     */
+    public function deleteEvent(Schedule $schedule)
+    {
+        $this->authorize('delete', $schedule);
+
+        if ($schedule->event_type === 'booking') {
+            return back()->with('error', 'Không thể xóa lịch được khóa bởi booking đã duyệt. Vui lòng liên hệ Manager để hủy booking.');
+        }
+
+        $schedule->delete();
+
+        return back()->with('success', 'Đã xóa lịch "' . $schedule->title . '" khỏi thời gian biểu.');
+    }
+
+    /**
      * Streamer tự đăng ký lịch stream hoặc lịch cá nhân
      */
     public function addEvent(StoreScheduleEventRequest $request, BookingCollisionService $collisionService)

@@ -125,6 +125,41 @@ class AdminController extends Controller
     }
 
     /**
+     * Xóa tài khoản (Admin). CHẶN (không soft delete) khi tài khoản còn booking:
+     *  - bookings.client_id là FK RESTRICT -> không xóa được client có đơn;
+     *  - xóa streamer sẽ CASCADE xóa hồ sơ + toàn bộ booking của talent -> mất lịch sử doanh thu/KPI.
+     * Manager bị xóa: streamer_profiles.manager_id / bookings.manager_id tự về NULL (FK SET NULL).
+     */
+    public function destroyUser(User $user)
+    {
+        $this->authorize('delete', $user);
+
+        $result = DB::transaction(function () use ($user) {
+            // Khóa cùng thứ tự với tạo booking (client -> streamer) để không có booking mới chen vào
+            $locked = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $profile = StreamerProfile::where('user_id', $locked->id)->lockForUpdate()->first();
+
+            $clientBookings = Booking::where('client_id', $locked->id)->count();
+            $talentBookings = $profile ? Booking::where('streamer_id', $profile->id)->count() : 0;
+
+            if ($clientBookings + $talentBookings > 0) {
+                return [
+                    'success' => false,
+                    'message' => 'Không thể xóa tài khoản ' . $locked->name . ' vì đang có '
+                        . ($clientBookings + $talentBookings) . ' booking liên quan (lịch sử hợp đồng & doanh thu). '
+                        . 'Hãy đổi vai trò hoặc giữ lại tài khoản.',
+                ];
+            }
+
+            $locked->delete();
+
+            return ['success' => true, 'message' => 'Đã xóa tài khoản ' . $locked->name . ' (' . $locked->email . ').'];
+        });
+
+        return back()->with($result['success'] ? 'success' : 'error', $result['message']);
+    }
+
+    /**
      * Màn hình phân bổ Streamer cho Manager
      */
     public function assignStreamers()

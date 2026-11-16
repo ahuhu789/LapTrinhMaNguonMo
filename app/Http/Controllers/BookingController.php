@@ -203,4 +203,20 @@ class BookingController extends Controller
     {
         return back()->with($result['success'] ? 'success' : 'error', $result['message']);
     }
+
+    /**
+     * Client xóa đơn của mình khi đơn đã bị từ chối hoặc đã hủy (không ảnh hưởng doanh thu/KPI)
+     */
+    public function destroy(Booking $booking)
+    {
+        $this->authorize('delete', $booking);
+
+        if (!$booking->isDeletable()) {
+            return back()->with('error', 'Chỉ được xóa booking đã bị từ chối hoặc đã hủy (trạng thái hiện tại: ' . $booking->status_label . ').');
+        }
+
+        $booking->delete();
+
+        return redirect()->route('bookings.index')->with('success', 'Đã xóa booking #' . $booking->id . ' khỏi danh sách của bạn.');
+    }
 }

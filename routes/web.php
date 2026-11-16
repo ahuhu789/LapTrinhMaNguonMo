@@ -47,6 +47,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
     // Hủy booking: Client chủ đơn hoặc Manager/Admin phụ trách (BookingPolicy@cancel)
     Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
+    // Client xóa đơn đã bị từ chối / đã hủy (BookingPolicy@delete)
+    Route::delete('/bookings/{booking}', [BookingController::class, 'destroy'])->name('bookings.destroy');
 });
 
 // --- 4. Manager & Admin Routes (Quản lý vận hành) ---
@@ -63,6 +65,7 @@ Route::middleware(['auth', 'role:manager,admin'])->group(function () {
     // Quản lý KPI
     Route::get('/manager/kpis', [KpiController::class, 'index'])->name('manager.kpis');
     Route::post('/manager/kpis', [KpiController::class, 'store'])->name('manager.kpis.store');
+    Route::delete('/manager/kpis/{kpi}', [KpiController::class, 'destroy'])->name('manager.kpis.destroy');
 
     // Upload file CSV số liệu và tải mẫu
     Route::get('/manager/metrics/upload', [MetricsController::class, 'showUploadForm'])->name('manager.metrics.upload');
@@ -77,6 +80,7 @@ Route::middleware(['auth', 'role:streamer'])->group(function () {
     Route::post('/streamer/profile', [StreamerController::class, 'updateProfile'])->name('streamer.profile.update');
     Route::get('/streamer/schedule', [StreamerController::class, 'schedule'])->name('streamer.schedule');
     Route::post('/streamer/schedule', [StreamerController::class, 'addEvent'])->name('streamer.schedule.store');
+    Route::delete('/streamer/schedule/{schedule}', [StreamerController::class, 'deleteEvent'])->name('streamer.schedule.destroy');
 });
 
 // --- 6. Admin Control Center Routes (Toàn quyền quản trị) ---
@@ -84,6 +88,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'adminDashboard'])->name('admin.dashboard');
     Route::get('/admin/users', [AdminController::class, 'usersIndex'])->name('admin.users');
     Route::post('/admin/users/{user}/role', [AdminController::class, 'updateUserRole'])->name('admin.users.role');
+    Route::delete('/admin/users/{user}', [AdminController::class, 'destroyUser'])->name('admin.users.destroy');
     Route::get('/admin/assign-streamers', [AdminController::class, 'assignStreamers'])->name('admin.assign');
     Route::post('/admin/assign-streamers/{streamer}', [AdminController::class, 'updateStreamerManager'])->name('admin.assign.update');
 });
