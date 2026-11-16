@@ -37,9 +37,14 @@
             $isCompletable = method_exists($booking, 'isCompletable')
                 ? $booking->isCompletable()
                 : $booking->status === 'approved';
-            $isCancellable = method_exists($booking, 'isCancellable')
-                ? $booking->isCancellable()
-                : in_array($booking->status, ['pending', 'reviewing', 'approved'], true);
+            // Role-specific cancel rules (backend: client may cancel pending/reviewing
+            // or approved-not-started; manager/admin only approved-not-started — pending uses Từ chối).
+            $isCancellableByClient = method_exists($booking, 'isCancellableByClient')
+                ? $booking->isCancellableByClient()
+                : in_array($booking->status, ['pending', 'reviewing'], true);
+            $isCancellableByManager = method_exists($booking, 'isCancellableByManager')
+                ? $booking->isCancellableByManager()
+                : false;
             $isDeletable = method_exists($booking, 'isDeletable')
                 ? $booking->isDeletable()
                 : in_array($booking->status, ['rejected', 'cancelled'], true);
@@ -54,8 +59,8 @@
 
             $canReviewBooking = $canManageBooking && $isReviewable && $policyAllows('review');
             $canCompleteBooking = $canManageBooking && $isCompletable && $policyAllows('complete');
-            $canManagerCancel = $canManageBooking && $isCancellable && $policyAllows('cancel');
-            $canClientCancel = $isClientOwner && $isCancellable && $policyAllows('cancel');
+            $canManagerCancel = $canManageBooking && $isCancellableByManager && $policyAllows('cancel');
+            $canClientCancel = $isClientOwner && $isCancellableByClient && $policyAllows('cancel');
             $canClientDelete = $isClientOwner && $isDeletable && $policyAllows('delete');
 
             $hasBookingActions = $canRejectBooking || $canApproveBooking || $canReviewBooking
